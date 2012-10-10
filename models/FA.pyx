@@ -48,6 +48,12 @@ def AllEvents( float betaexp, np.ndarray[np.int_t,ndim=2] events, np.ndarray[np.
     return n_possible_events
 
 def UpdateConfiguration( np.ndarray[np.int_t,ndim=1] configuration, np.ndarray[np.int_t,ndim=2] events, int event_i ):
+    """ Update configuration based on an event
+
+    Given that event 'event_i' out of 'n_possible_events' is selected by the algorithm elsewhere,
+        update the state of the configuration by changing the state referred to by events[event_i,0]
+        to the final state referred to by events[event_i,1]
+    """
     cdef int change_idx = events[event_i,0]
     cdef int result = events[event_i,1]
     configuration[change_idx] = result
