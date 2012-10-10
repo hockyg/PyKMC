@@ -19,8 +19,10 @@ cdef ConstraintI( int site_idx, np.ndarray[np.int_t,ndim=1] configuration, int n
     return constraint
 
 def AllEvents( float betaexp, np.ndarray[np.int_t,ndim=2] events, np.ndarray[np.float_t,ndim=1] event_rates, np.ndarray[np.int_t,ndim=1] configuration, int nsites, np.ndarray[np.int_t,ndim=2] neighbors, int nneighbors_per_site ):
+    """ This function generates the full list of allowed FA moves and their respective rates """
     cdef int i, state_i, n_possible_events
     cdef float constraint
+    cdef float event_rate = 0.0
     n_possible_events = 0
     for i in range(nsites):
         state_i = configuration[i]
@@ -29,9 +31,10 @@ def AllEvents( float betaexp, np.ndarray[np.int_t,ndim=2] events, np.ndarray[np.
         # next line is equivalent to
         # rate_{0->1} = e^(-beta) * constraint
         # rate_{1->0} = constraint
-        event_rates[i] = (1-state_i)*constraint*betaexp + state_i*constraint
-        if( event_rates[i] > 0 ):
+        event_rate = (1-state_i)*constraint*betaexp + state_i*constraint
+        if( event_rate > 0 ):
             events[n_possible_events,0] = i
             events[n_possible_events,1] = (1-state_i) 
+            event_rates[n_possible_events] = event_rate
             n_possible_events += 1
     return n_possible_events
