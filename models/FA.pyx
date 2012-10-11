@@ -101,3 +101,16 @@ def UpdateConfiguration( np.ndarray[np.int_t,ndim=1] configuration, np.ndarray[n
     cdef int change_idx = event_refs[event_i]
     cdef int result = events[change_idx]
     configuration[change_idx] = result
+
+def InitializeArrays( int nsites ):
+    cdef np.ndarray events = np.zeros(nsites,dtype=np.int)
+    cdef np.ndarray event_rates = np.zeros(nsites,dtype=np.float)
+    cdef np.ndarray event_refs = -1*np.ones(nsites,dtype=np.int)
+    cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=np.float)
+    return events, event_rates, event_refs, event_ref_rates
+
+def RandomConfiguration( int nsites, float temperature ):
+    cdef np.ndarray configuration = np.zeros(nsites,dtype=np.int)
+    # need to change this so that it generates a random configuration based on the correct distribution of number of excitations for a given temperature
+    configuration[0] = 1
+    return configuration
