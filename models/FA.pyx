@@ -5,6 +5,7 @@
 import numpy as np
 cimport numpy as np
 changes_per_step = 1
+model_name = "FA"
 
 cdef ConstraintI( int site_idx, np.ndarray[np.int_t,ndim=1] configuration, int nsites, np.ndarray[np.int_t,ndim=2] neighbors, int nneighbors_per_site ):
     """ This function gives the FA model 'constraint' 
@@ -18,19 +19,20 @@ cdef ConstraintI( int site_idx, np.ndarray[np.int_t,ndim=1] configuration, int n
         constraint = constraint+configuration[neighbors[site_idx,j]]
     return constraint
 
-def AllEvents( float betaexp, np.ndarray[np.int_t,ndim=2] events, np.ndarray[np.float_t,ndim=1] event_rates, np.ndarray[np.int_t,ndim=1] configuration, int nsites, np.ndarray[np.int_t,ndim=2] neighbors, int nneighbors_per_site ):
+def AllEvents( float betaexp, np.ndarray[np.int_t,ndim=2] events, np.ndarray[np.float_t,ndim=1] event_rates, np.ndarray[np.int_t,ndim=1] event_refs, np.ndarray[np.int_t,ndim=1] configuration, int nsites, np.ndarray[np.int_t,ndim=2] neighbors, int nneighbors_per_site ):
     """ This function generates the full list of allowed FA moves and their respective rates """
     cdef int i, state_i, n_possible_events
     cdef int j = 0
-    cdef float constraint
+    cdef float constraint = 0.0
     cdef float event_rate = 0.0
     n_possible_events = 0
 
     # first clear out rates, and events, just in case
-    for j in range(n_possible_events):
-        events[n_possible_events,0] = 0
-        events[n_possible_events,1] = 0
+    for j in range(nsites):
+        events[j,0] = 0
+        events[j,1] = 0
         event_rates[j] = 0.0
+        event_refs[j] = -1
 
     for i in range(nsites):
         state_i = configuration[i]
@@ -44,8 +46,12 @@ def AllEvents( float betaexp, np.ndarray[np.int_t,ndim=2] events, np.ndarray[np.
             events[n_possible_events,0] = i
             events[n_possible_events,1] = (1-state_i) 
             event_rates[n_possible_events] = event_rate
+            event_refs[i] = n_possible_events
             n_possible_events += 1
     return n_possible_events
+
+#def UpdateEventsI( int site_idx, float betaexp, np.ndarray[np.int_t,ndim=2] events, np.ndarray[np.float_t,ndim=1] event_rates, np.ndarray[np.int_t,ndim=1] event_refs, int n_possible_events, np.ndarray[np.int_t,ndim=1] configuration, int nsites, np.ndarray[np.int_t,ndim=2] neighbors, int nneighbors_per_site ):
+#    """ This function updates the list of allowed FA moves and their respective rates after an update to site I"""
 
 def UpdateConfiguration( np.ndarray[np.int_t,ndim=1] configuration, np.ndarray[np.int_t,ndim=2] events, int event_i ):
     """ Update configuration based on an event
