@@ -19,7 +19,7 @@ cdef ConstraintI( int site_idx, np.ndarray[np.int_t,ndim=1] configuration, int n
         constraint = constraint+configuration[neighbors[site_idx,j]]
     return constraint
 
-def AllEvents( float betaexp, np.ndarray[np.int_t,ndim=1] events, np.ndarray[np.float_t,ndim=1] event_rates, np.ndarray[np.int_t,ndim=1] event_refs, np.ndarray[np.float_t,ndim=1] event_ref_rates, np.ndarray[np.int_t,ndim=1] configuration, int nsites, np.ndarray[np.int_t,ndim=2] neighbors, int nneighbors_per_site ):
+def AllEvents( double betaexp, np.ndarray[np.int_t,ndim=1] events, np.ndarray[np.float_t,ndim=1] event_rates, np.ndarray[np.int_t,ndim=1] event_refs, np.ndarray[np.float_t,ndim=1] event_ref_rates, np.ndarray[np.int_t,ndim=1] configuration, int nsites, np.ndarray[np.int_t,ndim=2] neighbors, int nneighbors_per_site ):
     """ This function generates the full list of allowed FA moves and their respective rates """
     cdef int i, state_i, n_possible_events
     cdef int j = 0
@@ -55,7 +55,7 @@ def AllEvents( float betaexp, np.ndarray[np.int_t,ndim=1] events, np.ndarray[np.
             n_possible_events += 1
     return n_possible_events
 
-def UpdateEventsI( int site_idx, float betaexp, np.ndarray[np.int_t,ndim=1] events, np.ndarray[np.float_t,ndim=1] event_rates, np.ndarray[np.int_t,ndim=1] event_refs, np.ndarray[np.float_t,ndim=1] event_ref_rates, np.ndarray[np.int_t,ndim=1] configuration, int nsites, np.ndarray[np.int_t,ndim=2] neighbors, int nneighbors_per_site ):
+def UpdateEventsI( int site_idx, double betaexp, np.ndarray[np.int_t,ndim=1] events, np.ndarray[np.float_t,ndim=1] event_rates, np.ndarray[np.int_t,ndim=1] event_refs, np.ndarray[np.float_t,ndim=1] event_ref_rates, np.ndarray[np.int_t,ndim=1] configuration, int nsites, np.ndarray[np.int_t,ndim=2] neighbors, int nneighbors_per_site ):
     """ This function updates the list of allowed FA moves and their respective rates after an update to site I """
     cdef int i,j
     cdef int n_possible_events = 0

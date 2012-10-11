@@ -48,8 +48,8 @@ def driveKCM( simulation, int info_steps, float temperature, int seed = 0 ):
     cdef float t = 0.0
     cdef float prob, total_rate
 
-    cdef float beta = 1/temperature
-    cdef float betaexp = np.exp(-beta)
+    cdef double beta = 1/temperature
+    cdef double betaexp = np.exp(-beta)
 
     model = simulation.model
     lattice = simulation.lattice 
@@ -82,5 +82,5 @@ def driveKCM( simulation, int info_steps, float temperature, int seed = 0 ):
         event_i = BSearchProb( prob*total_rate, n_possible_events, cumulative_rates )
         model.UpdateConfiguration( configuration, events, event_refs, event_i )
         n_possible_events = model.UpdateEventsI( event_refs[event_i], betaexp, events, event_rates, event_refs, event_ref_rates, configuration, nsites, neighbors, nneighbors_per_site)
-        dt = np.log(1/prob)*total_rate
+        dt = np.log(1/prob)/total_rate
         t += dt
