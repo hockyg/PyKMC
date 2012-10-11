@@ -21,7 +21,10 @@ def main():
    options, args = parser.parse_args()
 
    # add a more complicated option for this later, once deciding on writing out
-   info_steps = 10
+   info_steps = 1
+
+   if options.seed < 0:
+       parser.error("Seed must be assigned a non-negative value")
 
    if options.model in ModelRegistry:
        model = ModelRegistry[options.model]
@@ -42,7 +45,6 @@ def main():
    # later, allow reading in of the configuration here
    simulation = Simulation( lattice, model, options.nsites,
                             options.max_steps, configuration=None )
-   # if options.mode == "KCM" 
    driveKCM( simulation, info_steps, options.temperature, options.seed )
    # create simulation object
    # pass simulation object to driver
