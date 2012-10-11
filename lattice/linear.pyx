@@ -5,6 +5,8 @@
 
 """
 
+lattice_name = "linear"
+
 import numpy as np
 cimport numpy as np
 from math import floor

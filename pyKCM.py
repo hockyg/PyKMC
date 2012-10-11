@@ -32,5 +32,8 @@ def main():
        parser.print_help()
        sys.exit(1)
 
+   # create simulation object
+   # pass simulation object to driver
+
 if __name__ == "__main__":
     main()
