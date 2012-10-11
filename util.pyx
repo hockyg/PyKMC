@@ -13,6 +13,8 @@ def BSearchProb( float prob, int nevents,
         return 0
     if cumulative_event_probs[final_event] < prob:
         return final_event
+    if nevents < 1:
+        return -1
 
     while (idx1-idx0)>1:
         halfidx = (idx1+idx0)/2

@@ -74,6 +74,9 @@ def driveKCM( simulation, int info_steps, float temperature, int seed = 0 ):
             random_floats = np.random.random(size=info_steps)
             print "%i / %i: %f"%( step_i, max_steps, t )
             print "\t",configuration
+        if n_possible_events < 1:
+            print "Terminating. No more moves possible."
+            break
         prob = random_floats[ stage_index ]
         total_rate = SumRates( event_ref_rates, cumulative_rates, n_possible_events )
         event_i = BSearchProb( prob*total_rate, n_possible_events, cumulative_rates )
