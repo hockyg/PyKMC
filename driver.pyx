@@ -28,7 +28,7 @@ class Simulation(object):
     def initialize(self, temperature):
         if self.initial_configuration is None:
             self.initial_configuration = self.model.RandomConfiguration( self.nsites, temperature )
-        return self.model.InitializeArrays( self.nsites )
+        return self.model.InitializeArrays( self.nsites, self.max_steps )
 
 cdef SumRates( np.ndarray[np.float_t,ndim=1] rates, np.ndarray[np.float_t,ndim=1] cumulative_rates,int n_possible_rates ):
     cdef i
@@ -61,9 +61,11 @@ def driveKCM( simulation, int info_steps, float temperature, int seed = 0 ):
     cdef np.ndarray random_floats = np.zeros( info_steps, dtype=np.float )
 
     nneighbors_per_site, neighbors = lattice.Neighbors(nsites)
-    events, event_rates, event_refs, event_ref_rates = simulation.initialize(temperature)
+    events, event_rates, event_refs, event_ref_rates, event_storage = simulation.initialize(temperature)
     cdef np.ndarray initial_configuration = simulation.initial_configuration
     cdef np.ndarray cumulative_rates = np.zeros(len(event_ref_rates),dtype=np.float)
+    cdef np.ndarray times = np.zeros(max_steps+1,dtype=np.float)
+
     # initialize or load configuration
     configuration = initial_configuration.copy()
     n_possible_events = model.AllEvents( betaexp, events, event_rates, event_refs, event_ref_rates, configuration, nsites, neighbors, nneighbors_per_site)
@@ -73,14 +75,17 @@ def driveKCM( simulation, int info_steps, float temperature, int seed = 0 ):
         if( step_i % info_steps == 0):
             random_floats = np.random.random(size=info_steps)
             print "%i / %i: %f"%( step_i, max_steps, t )
-            print "\t",configuration
+            #print "\t",configuration
         if n_possible_events < 1:
             print "Terminating. No more moves possible."
             break
         prob = random_floats[ stage_index ]
         total_rate = SumRates( event_ref_rates, cumulative_rates, n_possible_events )
         event_i = BSearchProb( prob*total_rate, n_possible_events, cumulative_rates )
-        model.UpdateConfiguration( configuration, events, event_refs, event_i )
+        model.UpdateConfiguration( configuration, events, event_refs, event_i, event_storage, step_i )
         n_possible_events = model.UpdateEventsI( event_refs[event_i], betaexp, events, event_rates, event_refs, event_ref_rates, configuration, nsites, neighbors, nneighbors_per_site)
-        dt = np.log(1/prob)/total_rate
+        dt = -np.log(prob)/total_rate
         t += dt
+        times[step_i+1] = t 
+
+    return times, initial_configuration, event_storage

@@ -91,26 +91,42 @@ def UpdateEventsI( int site_idx, double betaexp, np.ndarray[np.int_t,ndim=1] eve
     return n_possible_events
     
 
-def UpdateConfiguration( np.ndarray[np.int_t,ndim=1] configuration, np.ndarray[np.int_t,ndim=1] events,np.ndarray[np.int_t,ndim=1] event_refs, int event_i ):
+def UpdateConfiguration( np.ndarray[np.int_t,ndim=1] configuration, np.ndarray[np.int_t,ndim=1] events,np.ndarray[np.int_t,ndim=1] event_refs, int event_i, np.ndarray[np.int_t,ndim=2] event_storage, int step_i ):
     """ Update configuration based on an event
 
     Given that event 'event_i' out of 'n_possible_events' is selected by the algorithm elsewhere,
         update the state of the configuration by changing the state referred to by events[event_i,0]
         to the final state referred to by events[event_i,1]
+    Also, store the event.
     """
     cdef int change_idx = event_refs[event_i]
     cdef int result = events[change_idx]
     configuration[change_idx] = result
+    event_storage[step_i,0] = change_idx
+    event_storage[step_i,1] = result
 
-def InitializeArrays( int nsites ):
+def InitializeArrays( int nsites, int max_steps ):
     cdef np.ndarray events = np.zeros(nsites,dtype=np.int)
     cdef np.ndarray event_rates = np.zeros(nsites,dtype=np.float)
     cdef np.ndarray event_refs = -1*np.ones(nsites,dtype=np.int)
     cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=np.float)
-    return events, event_rates, event_refs, event_ref_rates
+    cdef np.ndarray event_storage = np.zeros((max_steps,2),dtype=np.int)
+    return events, event_rates, event_refs, event_ref_rates, event_storage
 
 def RandomConfiguration( int nsites, float temperature ):
+    """ Generates a random configuration commensurate with the temperature
+       
+        The average excitation value of a site in a non-interacting lattice gas with H = \sum_i n_i
+        is \langle n_i \rangle = 1/(\exp(\beta)+1)
+
+    """
+    cdef int i
     cdef np.ndarray configuration = np.zeros(nsites,dtype=np.int)
-    # need to change this so that it generates a random configuration based on the correct distribution of number of excitations for a given temperature
-    configuration[0] = 1
+    cdef np.ndarray rand_values = np.random.random(size=nsites)
+    cdef double beta = 1/temperature
+    cdef double avg_site_value = 1./(np.exp(beta)+1.0)
+
+    for i in range(nsites):
+        if rand_values[i] < avg_site_value:
+            configuration[i] = 1
     return configuration

@@ -2,6 +2,7 @@
 import os
 import sys
 from driver import *
+import cPickle as pickle
 
 def main():
    from optparse import OptionParser, OptionGroup
@@ -16,15 +17,16 @@ def main():
                      help="Number of sites to simulate (default: %default)" )
    parser.add_option('-s', '--max_steps', default=100, type=int,
                      help="Maximum number of steps to simulate (default: %default)" )
-   parser.add_option('--seed', default=0, type=int,
+   parser.add_option('--seed', default=1, type=int,
                      help="Random seed for simulation (default: %default)" )
+   parser.add_option("-o","--output_prefix",default=None,help="Set prefix for output files (default:none)")
    options, args = parser.parse_args()
 
    # add a more complicated option for this later, once deciding on writing out
-   info_steps = 1
+   info_steps = options.max_steps/10
 
-   if options.seed < 0:
-       parser.error("Seed must be assigned a non-negative value")
+   if options.seed < 1:
+       parser.error("Seed must be assigned a positive value")
 
    if options.model in ModelRegistry:
        model = ModelRegistry[options.model]
@@ -45,9 +47,12 @@ def main():
    # later, allow reading in of the configuration here
    simulation = Simulation( lattice, model, options.nsites,
                             options.max_steps, configuration=None )
-   driveKCM( simulation, info_steps, options.temperature, options.seed )
-   # create simulation object
-   # pass simulation object to driver
+   results = driveKCM( simulation, info_steps, options.temperature, options.seed )
+
+   if options.output_prefix:
+       output_pickle = options.output_prefix+'_results.pickle'
+       #pickle.dump((simulation,results),open(output_pickle,'wb'), protocol=-1)
+       pickle.dump(results,open(output_pickle,'wb'), protocol=-1)
 
 if __name__ == "__main__":
     main()
