@@ -2,6 +2,13 @@ import numpy as np
 cimport numpy as np
 from math import ceil
 
+def textline_box( lineoftext ):
+    characters = len( lineoftext )
+    header = "+" + "-"*characters + "+"
+    center = "|"+lineoftext.strip()+"|"
+    footer = "+" + "-"*characters + "+"
+    return "\n".join( (header,center,footer) )
+
 def BSearchProb( float prob, int nevents, 
                   np.ndarray[np.float_t,ndim=1] cumulative_event_probs ):
     cdef int final_event = nevents-1

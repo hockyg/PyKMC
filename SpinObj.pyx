@@ -9,7 +9,7 @@ import cPickle as pickle
 import ctypes as ct
 import gzip
 
-from SpinUtil import BSearchProb
+from SpinUtil import *
 
 LatticeRegistry = {}
 ModelRegistry = {}
@@ -20,6 +20,8 @@ from models import FA
 
 LatticeRegistry[linear.lattice_name] = linear
 ModelRegistry[FA.model_name] = FA
+
+model_dict = {"FA":0}
 
 #definitions
 c_int = ct.c_int
