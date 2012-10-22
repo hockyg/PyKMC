@@ -1,4 +1,5 @@
 #!/usr/bin/python
+import pyximport; pyximport.install()
 import os
 import sys
 from driver import *
