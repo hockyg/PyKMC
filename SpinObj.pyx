@@ -187,6 +187,10 @@ class SimData(ct.Structure):
                 ("nneighbors_per_site",c_int), 
                 ("neighbors",c_void_p),
         # simulation stuff
+                ("model_number",c_int),
+                ("current_step",c_int),
+                ("n_possible_events",c_int),
+                ("seed",c_int),
                 ("temp",c_double),
                 ("betaexp",c_double), 
                 ("time",c_float), 
@@ -196,7 +200,10 @@ class SimData(ct.Structure):
                 ("event_refs",c_void_p),
                 ("event_rates",c_void_p),
                 ("event_ref_rates",c_void_p),
+                ("cumulative_rates",c_void_p),
         # storage stuff
+                ("event_storage",c_void_p),
+                ("persistence",c_void_p),
     ]
 
 SimData_p = ct.POINTER(SimData)
