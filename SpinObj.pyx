@@ -189,6 +189,7 @@ class SimData(ct.Structure):
         # simulation stuff
                 ("temp",c_double),
                 ("betaexp",c_double), 
+                ("time",c_float), 
                 ("configuration",c_void_p),
         # rate stuff
                 ("events",c_void_p),
@@ -196,7 +197,6 @@ class SimData(ct.Structure):
                 ("event_rates",c_void_p),
                 ("event_ref_rates",c_void_p),
         # storage stuff
-                ("persistance",c_void_p),
     ]
 
 SimData_p = ct.POINTER(SimData)
