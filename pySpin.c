@@ -6,6 +6,25 @@
 #include "pySpin.h"
 #include "random.h"
 
+float get_event_rate(int site_idx, struct SimData *SD){
+    int j;
+    int nneighbors_per_site = SD->nneighbors_per_site;
+    float event_rate = 0.0;
+    if(SD->model_number<2){ // FA
+        float constraint = 0.0;
+        int state_i = SD->configuration[site_idx];
+        //note this depends on the lattice being properly declared such that 
+        //  all neighbors are those that actually affect the given spin
+        for(j=0;j<nneighbors_per_site;j++){
+            constraint+=SD->configuration[SD->neighbors[nneighbors_per_site*site_idx+j]];
+        }
+        event_rate = (1-state_i)*constraint*SD->betaexp + state_i*constraint;
+    }
+    else{
+       printf("pySpin.c: Model number not yet supported by get_event_rate\n");
+    }
+    return event_rate;
+}
 
 int switch_state( int state, int model_number ){
     if(model_number<MAXZEROONEMODEL){ // models with 0's and 1's
@@ -31,7 +50,7 @@ int update_events_i( int event_i, struct SimData *SD){
     int site_idx = SD->event_refs[event_i]; // need this below
     i = site_idx;
     state_i = SD->configuration[i];
-    event_rate = get_event_rate(SD);
+    event_rate = get_event_rate(i,SD);
     SD->events[i] = switch_state( state_i, model_number );
     SD->event_rates[i] = event_rate;
 
@@ -39,7 +58,7 @@ int update_events_i( int event_i, struct SimData *SD){
     for(j=0;j<nneighbors_per_site;j++){
         i = SD->neighbors[nneighbors_per_site*site_idx+j];
         state_i = SD->configuration[i];
-        event_rate = get_event_rate(SD);
+        event_rate = get_event_rate(i,SD);
         SD->events[i] = switch_state( state_i, model_number );
         SD->event_rates[i] = event_rate;
     }
