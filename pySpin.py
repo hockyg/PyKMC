@@ -44,6 +44,12 @@ def simulate(options):
         simulation.initialize_new( options.lattice, options.model, options.nsites,
                                    options.temperature, options.max_steps, seed=seed )
         simulation.command_line_options = options
+        # set up write, restart, and info times
+        options.trj_time = 1
+        options.restart_time = 1
+
+        simulation.final_options = options
+        simulation.setup_output_files()
 
     try:
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())
@@ -58,6 +64,7 @@ def simulate(options):
                 print "No more possible moves"
                 break
             p1,p2 = persistence( simulation.nsites, simulation.initial_down_spins, simulation.system.persistence_array)
+            simulation.write_frame()
             #print simulation.system.time, simulation.system.configuration, p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.configuration )
 
         print >>verbose_out, "Simulation Finished!"

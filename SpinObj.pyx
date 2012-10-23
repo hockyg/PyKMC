@@ -125,9 +125,13 @@ class Simulation(object):
 #        self.restart_file = None
 #        self.restarted_from = None
 
-    def setup_output_files(self):
+    def write_frame(self):
+        pickle.dump(self.system, self.trj_file )
+
+    def setup_output_files(self,mode="w",compresslevel=3):
         if self.final_options.trj_time > 0:
             self.trj_file_name = self.final_options.output_prefix+'.spintrj.gz'
+            self.trj_file = gzip.open(self.trj_file_name,mode+'b',compresslevel)
         if self.final_options.restart_time > 0:
             self.restart_file_name = self.final_options.output_prefix+'.spinrestart.gz'
 
@@ -149,8 +153,6 @@ class Simulation(object):
         self.load_state(filename)
         self.reset_for_continue(reset_time=True)
 
-#    def open_final_files(self,mode="w",compresslevel=3):
-#    def open_start_files(self,mode="w",compresslevel=3):
     def print_state(self):
         for key in sorted(self.__dict__):
             if hasattr(self, key):
