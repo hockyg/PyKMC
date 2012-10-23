@@ -105,8 +105,7 @@ int update_configuration( int event_i, struct SimData *SD){
     int change_idx = SD->event_refs[event_i];
     int result = SD->events[change_idx];
     SD->configuration[change_idx] = result;
-    if(result==1 && SD->initial_configuration[change_idx]==0 
-                 && SD->model_number<MAXZEROONEMODEL) SD->persistence_array[change_idx] = 0;
+    if(SD->model_number<MAXZEROONEMODEL) SD->persistence_array[change_idx] = 0;
     //event_storage[SD->current_step] = change_idx;
     return 0;
 }

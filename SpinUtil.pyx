@@ -2,6 +2,19 @@ import numpy as np
 cimport numpy as np
 from math import ceil
 
+def persistence( int nsites, int ndownspins_start, np.ndarray[np.int_t,ndim=1] persistence_array ):
+    cdef int i
+    cdef downpersist = 0
+    cdef totalpersist = 0
+    for i in range(nsites):
+        if persistence_array[i]<0:
+            downpersist = downpersist+1
+            totalpersist = totalpersist+1
+        elif persistence_array[i]>0:
+            totalpersist = totalpersist+1
+    return float(totalpersist)/float(nsites), float(downpersist)/float(ndownspins_start)
+    
+
 def textline_box( lineoftext ):
     characters = len( lineoftext )
     header = "+" + "-"*characters + "+"

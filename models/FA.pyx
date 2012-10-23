@@ -15,7 +15,7 @@ def InitializeArrays( int nsites, int max_steps ):
     cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=ct.c_float)
     cdef np.ndarray cumulative_rates = np.zeros(nsites,dtype=ct.c_float)
 #    cdef np.ndarray event_storage = np.zeros((max_steps,2),dtype=ct.c_int)
-    cdef np.ndarray persistence_array= -1*np.ones(nsites,dtype=ct.c_int)
+    cdef np.ndarray persistence_array= np.ones(nsites,dtype=ct.c_int)
     return {"events": events,
             "event_rates": event_rates, 
             "event_refs": event_refs,

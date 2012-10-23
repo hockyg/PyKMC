@@ -53,14 +53,16 @@ def simulate(options):
     try:
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())
         C.setup_spin_system(simulation.system.SD)
-        print simulation.system.time, simulation.system.configuration, simulation.system.persistence_array
+        p1,p2 = persistence( simulation.nsites, simulation.initial_down_spins, simulation.system.persistence_array)
+        print simulation.system.time, simulation.system.configuration, p1, p2 
 
-        for i in range(100):
-            return_val = C.run_kmc_spin(1,simulation.system.SD)
+        for i in range(1):
+            return_val = C.run_kmc_spin(simulation.max_steps,simulation.system.SD)
             if return_val == -1: 
                 print "No more possible moves"
                 break
-            print simulation.system.time, simulation.system.configuration, simulation.system.persistence_array
+            p1,p2 = persistence( simulation.nsites, simulation.initial_down_spins, simulation.system.persistence_array)
+            print simulation.system.time, simulation.system.configuration, p1,p2
 
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)

@@ -82,6 +82,7 @@ class Simulation(object):
         # set up lattice
         self.configuration = ModelRegistry[self.model_name].RandomConfiguration( nsites, temperature )
         self.initial_configuration = self.configuration.copy()
+        self.initial_down_spins = (self.initial_configuration<0.1).sum() # either zeros or -1's, depending on model
         nneighbors_per_site, neighbors = LatticeRegistry[self.lattice_name].Neighbors(nsites)
 
         # set up system object
@@ -94,7 +95,7 @@ class Simulation(object):
         self.system.n_possible_events = 0
         self.system.seed = self.seed = seed
         self.system.temp = temperature
-        self.system.betaexp = np.exp(1./temperature)
+        self.system.betaexp = np.exp(-1./temperature)
         self.system.time = 0.0
 
         self.system.configuration = self.configuration
@@ -104,7 +105,7 @@ class Simulation(object):
         for key in sys_arrays.keys():
             setattr( self.system, key, sys_arrays[key] )
 
-        self.system.persistence_array[self.configuration == 0] = 1
+        self.system.persistence_array[self.configuration == 0] = -1 # down spins are -1, up spins are 1
 
 #    def reset_for_continue(self,reset_time=True):
 #        self.steps_to_take = []
