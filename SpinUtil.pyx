@@ -1,6 +1,26 @@
 import numpy as np
 cimport numpy as np
 from math import ceil
+import sys
+
+def tee_logfile( output_prefix ):
+    from SpinObj import tee
+    logfile = output_prefix+'.log'
+    fh = open(logfile,'w')
+    stdout_sv = sys.stdout
+    stderr_sv = sys.stderr
+    sys.stdout = tee( stdout_sv, fh )
+    sys.stderr = tee( stderr_sv, fh )
+
+def c_to_T_ideal( int nsites, np.ndarray[np.int_t,ndim=1] configuration ):
+    """converts the concentration of up spins for a lattice gas of zeros and ones to an effective temperature"""
+    cdef int i
+    cdef float c = 0.0
+    for i in range(nsites):
+        c = c + configuration[i]
+    c = c/nsites
+    # c = 1/(1+exp(1/T))
+    return 1./np.log(1/c-1)
 
 def persistence( int nsites, int ndownspins_start, np.ndarray[np.int_t,ndim=1] persistence_array ):
     cdef int i

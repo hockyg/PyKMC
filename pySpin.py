@@ -13,10 +13,6 @@ def simulate(options):
     timer = Timer()
     model = ModelRegistry[options.model]
 
-    if options.output_prefix:
-        output_pickle = options.output_prefix+'_results.pickle'
-        pickle.dump(results,open(output_pickle,'wb'), protocol=-1)
-
     print >>verbose_out, textline_box("Initializing simulator")
     # set up c functions
     pysimlib = os.path.join(os.getcwd(),libname)
@@ -53,15 +49,16 @@ def simulate(options):
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())
         C.setup_spin_system(simulation.system.SD)
         p1,p2 = persistence( simulation.nsites, simulation.initial_down_spins, simulation.system.persistence_array)
-        print simulation.system.time, simulation.system.configuration, p1, p2 
+        #print simulation.system.time, simulation.system.configuration, p1, p2, c_to_T_ideal( simulation.nsites, simulation.system.configuration )
 
-        for i in range(1):
-            return_val = C.run_kmc_spin(simulation.max_steps,simulation.system.SD)
+        for i in range(simulation.max_steps):
+#            print simulation.system.event_ref_rates[:simulation.system.n_possible_events]
+            return_val = C.run_kmc_spin(1,simulation.system.SD)
             if return_val == -1: 
                 print "No more possible moves"
                 break
             p1,p2 = persistence( simulation.nsites, simulation.initial_down_spins, simulation.system.persistence_array)
-            print simulation.system.time, simulation.system.configuration, p1,p2
+            #print simulation.system.time, simulation.system.configuration, p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.configuration )
 
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)
@@ -84,7 +81,7 @@ def main():
                       help="Number of sites to simulate (default: %default)" )
     parser.add_option('-s', '--max_steps', default=100, type=int,
                       help="Maximum number of steps to simulate (default: %default)" )
-    parser.add_option('--seed', default=1, type=int,
+    parser.add_option('--seed', default=None, type=int,
                       help="Random seed for simulation (default: %default)" )
     parser.add_option("-o","--output_prefix",default=None,help="Set prefix for output files (default:none)")
     parser.add_option("-v","--verbose",help="Print useful execution information",dest="verbose",default=True,action="store_true")
@@ -93,7 +90,7 @@ def main():
     # add a more complicated option for this later, once deciding on writing out
     info_steps = options.max_steps/10
  
-    if options.seed < 1:
+    if options.seed is not None and options.seed < 1:
         parser.error("Seed must be assigned a positive value")
  
     if not options.model in ModelRegistry:

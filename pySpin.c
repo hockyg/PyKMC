@@ -19,6 +19,7 @@ float get_event_rate(int site_idx, struct SimData *SD){
             constraint+=SD->configuration[SD->neighbors[nneighbors_per_site*site_idx+j]];
         }
         event_rate = (1-state_i)*constraint*SD->betaexp + state_i*constraint;
+//        printf("%i %i %f %f %f\n",site_idx,state_i,constraint,SD->betaexp,event_rate);
     }
     else{
        printf("pySpin.c: Model number not yet supported by get_event_rate\n");
@@ -167,7 +168,14 @@ int run_kmc_spin(int nsteps,struct SimData *SD){
         }
         float prob = get_frandom();
         float total_rate = sum_rates(SD);
+
+        //int j;
+        //printf("prob*total_rate: %f\n",prob*total_rate);
+        //for(j=0;j<SD->n_possible_events;j++){ 
+        //    printf("%f ",SD->cumulative_rates[j]);
+        //}
         int event_i = b_find_event( prob*total_rate, SD);
+        //printf("\nevent_i: %i\n",event_i);
         update_configuration( event_i, SD );
         n_possible_events = update_events_i( event_i, SD );
         dt = -log(prob)/total_rate;
