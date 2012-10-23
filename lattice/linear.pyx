@@ -10,13 +10,14 @@ lattice_name = "linear"
 import numpy as np
 cimport numpy as np
 from math import floor
+import ctypes as ct
 
 def Neighbors(nsites): 
     """ Calculates all neighbors for all sites """
     # note that there are exactly 2*nsites neighbors
     cdef int nneighbors_per_site = 2
     cdef int site_idx, j
-    cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=np.int)
+    cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
     for site_idx in range(nsites):
         neighbors_i = NeighborsI(site_idx, nsites)
         for j in range(nneighbors_per_site):

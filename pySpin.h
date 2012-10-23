@@ -18,15 +18,15 @@ struct SimData{
     double betaexp;
     float time;
     int *configuration;
+    int *initial_configuration;
     // rate stuff
-    float *events;        
-    float *event_refs;
+    int *events;        
+    int *event_refs;
     float *event_rates;
     float *event_ref_rates;
     float *cumulative_rates;
-    // storage stuff
-    int *event_storage;
-    float *persistence;
+    // calculation stuff
+    int *persistence_array;
 };
 
 #endif

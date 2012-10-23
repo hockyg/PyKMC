@@ -63,7 +63,10 @@ class NullDevice():
         pass
 
 class Simulation(object):
-    def __init__(self,lattice_name,model_name,nsites,max_steps,configuration=None):
+    def __init__(self):
+        pass
+
+    def initialize_new(self,lattice_name,model_name,nsites,temperature,max_steps,seed=0):
         self.initial_configuration = None
         self.command_line_options = None
         self.final_options = None
@@ -71,27 +74,51 @@ class Simulation(object):
         self.lattice_name = lattice_name
         self.model_name = model_name
 
-        self.nsites = nsites
 
-        self.reset_for_continue(reset_time=True)
+        #self.reset_for_continue(reset_time=True)
 
         self.max_steps = max_steps
-        if configuration is not None:
-             self.initial_configuration = np.copy(configuration)
 
-    def reset_for_continue(self,reset_time=True):
-        self.steps_to_take = []
+        # set up lattice
+        self.configuration = ModelRegistry[self.model_name].RandomConfiguration( nsites, temperature )
+        self.initial_configuration = self.configuration.copy()
+        nneighbors_per_site, neighbors = LatticeRegistry[self.lattice_name].Neighbors(nsites)
 
-        if reset_time:
-            self.frame_step = 0
-            self.frame_time = 0
+        # set up system object
+        self.system = SpinSys()
+        self.system.nsites = self.nsites = nsites
+        self.system.nneighbors_per_site = nneighbors_per_site
+        self.system.neighbors = neighbors
+        self.system.model_number = model_dict[self.model_name]
+        self.system.current_step = 0
+        self.system.n_possible_events = 0
+        self.system.seed = self.seed = seed
+        self.system.temp = temperature
+        self.system.betaexp = np.exp(1./temperature)
+        self.system.time = 0.0
 
-        self.frame_num = 0
+        self.system.configuration = self.configuration
+        self.system.initial_configuration = self.initial_configuration
 
-        self.trj_file = None
-        self.start_file = None
-        self.restart_file = None
-        self.restarted_from = None
+        sys_arrays = ModelRegistry[self.model_name].InitializeArrays( self.nsites, self.max_steps )
+        for key in sys_arrays.keys():
+            setattr( self.system, key, sys_arrays[key] )
+
+        self.system.persistence_array[self.configuration == 0] = 1
+
+#    def reset_for_continue(self,reset_time=True):
+#        self.steps_to_take = []
+#
+#        if reset_time:
+#            self.frame_step = 0
+#            self.frame_time = 0
+#
+#        self.frame_num = 0
+#
+#        self.trj_file = None
+#        self.start_file = None
+#        self.restart_file = None
+#        self.restarted_from = None
 
     def setup_output_files(self):
         if self.final_options.trj_time > 0:
@@ -132,6 +159,7 @@ class SpinSys(object):
         self.creation_date = datetime.datetime.now()
         self.created_on = socket.gethostname()
         self.creation_host_system_info = os.uname()
+        self.exception_list = []
 
     def print_state(self):
         for key in sorted(SimDataFields):
@@ -195,15 +223,15 @@ class SimData(ct.Structure):
                 ("betaexp",c_double), 
                 ("time",c_float), 
                 ("configuration",c_void_p),
+                ("initial_configuration",c_void_p),
         # rate stuff
                 ("events",c_void_p),
                 ("event_refs",c_void_p),
                 ("event_rates",c_void_p),
                 ("event_ref_rates",c_void_p),
                 ("cumulative_rates",c_void_p),
-        # storage stuff
-                ("event_storage",c_void_p),
-                ("persistence",c_void_p),
+        # calculation stuff
+                ("persistence_array",c_void_p),
     ]
 
 SimData_p = ct.POINTER(SimData)

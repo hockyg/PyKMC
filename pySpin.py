@@ -45,13 +45,28 @@ def simulate(options):
         print "Reading input not currently supported"
         sys.exit(1)
     else:
-        initial_configuration = model.RandomConfiguration( options.nsites, options.temperature )
+        simulation = Simulation()
+        simulation.initialize_new( lattice.lattice_name, model.model_name, options.nsites,
+                                   options.temperature, options.max_steps, seed=seed )
+        simulation.command_line_options = options
 
-    nneighbors_per_site, neighbors = lattice.Neighbors(options.nsites)
- 
-    simulation = Simulation( lattice.lattice_name, model.model_name, options.nsites,
-                             options.max_steps, configuration=initial_configuration )
-    simulation.seed = seed
+    try:
+        print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())
+        C.setup_spin_system(simulation.system.SD)
+        print simulation.system.time, simulation.system.configuration, simulation.system.persistence_array
+
+        for i in range(100):
+            return_val = C.run_kmc_spin(1,simulation.system.SD)
+            if return_val == -1: 
+                print "No more possible moves"
+                break
+            print simulation.system.time, simulation.system.configuration, simulation.system.persistence_array
+
+        print >>verbose_out, "Simulation Finished!"
+        C.cleanup_spin_system(simulation.system.SD)
+    except KeyboardInterrupt:
+        print "Terminating simulation..."
+        C.cleanup_spin_system(simulation.system.SD)
 
 def main():
     from optparse import OptionParser, OptionGroup

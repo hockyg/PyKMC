@@ -26,6 +26,30 @@ float get_event_rate(int site_idx, struct SimData *SD){
     return event_rate;
 }
 
+int all_events( struct SimData *SD){
+    int i;
+    int n_possible_events = 0;
+    for(i=0;i<SD->nsites;i++){
+        SD->events[i] = 0;
+        SD->event_rates[i] = 0.0;
+        SD->event_refs[i] = -1;
+        SD->event_ref_rates[i] = 0.0;
+        SD->cumulative_rates[i] = 0;
+    }
+    for(i=0;i<SD->nsites;i++){
+        float event_rate = get_event_rate(i,SD);
+        SD->events[i] = switch_state(SD->configuration[i],SD->model_number);
+        SD->event_rates[i] = event_rate;
+        if(event_rate>0){
+            SD->event_refs[n_possible_events] = i;
+            SD->event_ref_rates[n_possible_events] = event_rate;
+            n_possible_events++;
+        }
+    }
+    SD->n_possible_events = n_possible_events;
+    return n_possible_events;
+}
+
 int switch_state( int state, int model_number ){
     if(model_number<MAXZEROONEMODEL){ // models with 0's and 1's
         return 1 - state;
@@ -81,6 +105,8 @@ int update_configuration( int event_i, struct SimData *SD){
     int change_idx = SD->event_refs[event_i];
     int result = SD->events[change_idx];
     SD->configuration[change_idx] = result;
+    if(result==1 && SD->initial_configuration[change_idx]==0 
+                 && SD->model_number<MAXZEROONEMODEL) SD->persistence_array[change_idx] = 0;
     //event_storage[SD->current_step] = change_idx;
     return 0;
 }
@@ -88,16 +114,13 @@ int update_configuration( int event_i, struct SimData *SD){
 double sum_rates( struct SimData *SD ){
     int i;
     double total_rate = 0.0;
-    double cume_rate;
     if(SD->n_possible_events>0){
-        SD->cumulative_rates[0] = SD->event_rates[0];
-        cume_rate = SD->event_rates[0];
+        SD->cumulative_rates[0] = SD->event_ref_rates[0];
     }
 
     for(i=1;i<SD->n_possible_events;i++){
-        total_rate = total_rate + SD->event_rates[i];
-        cume_rate = cume_rate + SD->event_rates[i];
-        SD->cumulative_rates[i] = cume_rate;
+        total_rate = total_rate + SD->event_ref_rates[i];
+        SD->cumulative_rates[i] = SD->cumulative_rates[i-1] + SD->event_ref_rates[i];
     }
     return total_rate;
 } 
@@ -156,8 +179,8 @@ int run_kmc_spin(int nsteps,struct SimData *SD){
 }
 
 int setup_spin_system(struct SimData *SD){
-    //all_events(SD);
     set_seed(SD->seed);
+    all_events(SD);
     return 0;
 }
 
