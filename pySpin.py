@@ -11,7 +11,6 @@ verbose_out = None
 
 def simulate(options):
     timer = Timer()
-    lattice = LatticeRegistry[options.lattice]
     model = ModelRegistry[options.model]
 
     if options.output_prefix:
@@ -46,7 +45,7 @@ def simulate(options):
         sys.exit(1)
     else:
         simulation = Simulation()
-        simulation.initialize_new( lattice.lattice_name, model.model_name, options.nsites,
+        simulation.initialize_new( options.lattice, options.model, options.nsites,
                                    options.temperature, options.max_steps, seed=seed )
         simulation.command_line_options = options
 
@@ -102,6 +101,8 @@ def main():
         print "\t",ModelRegistry.keys()
         parser.print_help()
         sys.exit(1)
+
+    LatticeRegistry = ModelRegistry[options.model].LatticeRegistry
  
     if not options.lattice in LatticeRegistry:
         print "Lattice not yet defined. Please select from:"

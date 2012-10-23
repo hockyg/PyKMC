@@ -11,14 +11,14 @@ import gzip
 
 from SpinUtil import *
 
-LatticeRegistry = {}
+#LatticeRegistry = {}
+#LatticeRegistry[linear.lattice_name] = linear
 ModelRegistry = {}
 
 # try to make this more general. perhaps move later?
 from lattice import linear
 from models import FA
 
-LatticeRegistry[linear.lattice_name] = linear
 ModelRegistry[FA.model_name] = FA
 
 model_dict = {"FA":0}
@@ -74,16 +74,20 @@ class Simulation(object):
         self.lattice_name = lattice_name
         self.model_name = model_name
 
-
         #self.reset_for_continue(reset_time=True)
 
         self.max_steps = max_steps
 
         # set up lattice
-        self.configuration = ModelRegistry[self.model_name].RandomConfiguration( nsites, temperature )
+        model = ModelRegistry[self.model_name]
+        self.configuration = model.RandomConfiguration( nsites, temperature )
         self.initial_configuration = self.configuration.copy()
         self.initial_down_spins = (self.initial_configuration<0.1).sum() # either zeros or -1's, depending on model
-        nneighbors_per_site, neighbors = LatticeRegistry[self.lattice_name].Neighbors(nsites)
+
+
+        lattice = model.LatticeRegistry[lattice_name](nsites)
+
+        nneighbors_per_site, neighbors = lattice.Neighbors()
 
         # set up system object
         self.system = SpinSys()
