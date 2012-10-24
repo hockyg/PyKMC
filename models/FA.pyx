@@ -8,6 +8,38 @@ import ctypes as ct
 changes_per_step = 1
 model_name = "FA"
 
+class SquareClass(object):
+    def __init__(self, int side_length ):
+        self.side_length = side_length
+        self.nsites = side_length*side_length
+
+    def Neighbors(self):
+        """ Calculates all neighbors for all sites """
+        cdef int nsites = self.nsites
+        cdef int nneighbors_per_site = 4
+        cdef int site_idx, j
+        cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        for site_idx in range(nsites):
+            neighbors_i = self.NeighborsI(site_idx)
+            for j in range(nneighbors_per_site):
+                neighbors[site_idx,j] = neighbors_i[j]
+        return nneighbors_per_site, neighbors
+    
+    def NeighborsI( self, int site_idx ):
+        """ Returns the neighbors of lattice site site_idx """
+        # first find x and y position
+        cdef int col_num = site_idx%self.side_length
+        cdef int row_num = (site_idx-col_num)/self.side_length
+        
+        cdef int f_column = (col_num+1)%self.side_length
+        cdef int b_column = (col_num-1)%self.side_length
+        cdef int u_row = (row_num+1)%(self.side_length)
+        cdef int d_row = (row_num-1)%(self.side_length)
+
+        return self.row_col_to_idx(row_num,f_column), self.row_col_to_idx(row_num,b_column), self.row_col_to_idx(u_row,col_num), self.row_col_to_idx(d_row,col_num)
+
+    def row_col_to_idx(self, int row, int col):
+        return row*self.side_length+col
 
 class LinearClass(object):
     def __init__(self, int side_length ):
@@ -44,7 +76,7 @@ class LinearClass(object):
 #        return dx - nsites*np.floor( dx/nsites + 0.5 )
 
 #LatticeRegistry = {"linear":LinearClass, "square":SquareClass, "cubic":CubicClass }
-LatticeRegistry = {"linear":LinearClass }
+LatticeRegistry = {"linear":LinearClass, "square": SquareClass }
 
 def InitializeArrays( int nsites, int max_steps ):
     cdef np.ndarray events = np.zeros(nsites,dtype=ct.c_int)

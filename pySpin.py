@@ -41,7 +41,7 @@ def simulate(options):
         sys.exit(1)
     else:
         simulation = Simulation()
-        simulation.initialize_new( options.lattice, options.model, options.nsites,
+        simulation.initialize_new( options.lattice, options.model, options.side_length,
                                    options.temperature, options.max_steps, seed=seed )
         simulation.command_line_options = options
         # set up write, restart, and info times
@@ -49,7 +49,8 @@ def simulate(options):
         options.restart_time = 1
 
         simulation.final_options = options
-        simulation.setup_output_files()
+        if options.output_prefix:
+            simulation.setup_output_files()
 
     try:
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())
@@ -64,8 +65,9 @@ def simulate(options):
                 print "No more possible moves"
                 break
             p1,p2 = persistence( simulation.nsites, simulation.initial_down_spins, simulation.system.persistence_array)
-            simulation.write_frame()
-            #print simulation.system.time, simulation.system.configuration, p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.configuration )
+            if options.output_prefix:
+                simulation.write_frame()
+            print simulation.system.time, simulation.system.configuration, p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.configuration )
 
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)
@@ -84,8 +86,8 @@ def main():
                       help="Model to simulate (default: %default)" )
     parser.add_option('-T', '--temperature', default=1.0, type=float,
                       help="Temperature to use (default: %default)" )
-    parser.add_option('-N', '--nsites', default=10, type=int,
-                      help="Number of sites to simulate (default: %default)" )
+    parser.add_option('-L', '--side_length',dest="side_length",default=10, type=int,
+                      help="Side length of linear, square or cubic lattice to simulate. Total number of sites for other lattices, if ever implemented (default: %default)" )
     parser.add_option('-s', '--max_steps', default=100, type=int,
                       help="Maximum number of steps to simulate (default: %default)" )
     parser.add_option('--seed', default=None, type=int,

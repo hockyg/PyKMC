@@ -66,7 +66,7 @@ class Simulation(object):
     def __init__(self):
         pass
 
-    def initialize_new(self,lattice_name,model_name,nsites,temperature,max_steps,seed=0):
+    def initialize_new(self,lattice_name,model_name,side_length,temperature,max_steps,seed=0):
         self.initial_configuration = None
         self.command_line_options = None
         self.final_options = None
@@ -80,18 +80,18 @@ class Simulation(object):
 
         # set up lattice
         model = ModelRegistry[self.model_name]
+
+        lattice = model.LatticeRegistry[lattice_name](side_length)
+        nneighbors_per_site, neighbors = lattice.Neighbors()
+        self.nsites = nsites = lattice.nsites
+
         self.configuration = model.RandomConfiguration( nsites, temperature )
         self.initial_configuration = self.configuration.copy()
         self.initial_down_spins = (self.initial_configuration<0.1).sum() # either zeros or -1's, depending on model
 
-
-        lattice = model.LatticeRegistry[lattice_name](nsites)
-
-        nneighbors_per_site, neighbors = lattice.Neighbors()
-
         # set up system object
         self.system = SpinSys()
-        self.system.nsites = self.nsites = nsites
+        self.system.nsites = nsites
         self.system.nneighbors_per_site = nneighbors_per_site
         self.system.neighbors = neighbors
         self.system.model_number = model_dict[self.model_name]
