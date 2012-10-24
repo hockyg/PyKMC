@@ -8,6 +8,42 @@ import ctypes as ct
 changes_per_step = 1
 model_name = "FA"
 
+class CubeClass(object):
+    def __init__(self, int side_length ):
+        self.side_length = side_length
+        self.nsites = side_length*side_length*side_length
+
+    def Neighbors(self):
+        """ Calculates all neighbors for all sites """
+        cdef int nsites = self.nsites
+        cdef int nneighbors_per_site = 6
+        cdef int site_idx, j
+        cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        for site_idx in range(nsites):
+            neighbors_i = self.NeighborsI(site_idx)
+            for j in range(nneighbors_per_site):
+                neighbors[site_idx,j] = neighbors_i[j]
+        return nneighbors_per_site, neighbors
+    
+    def NeighborsI( self, int site_idx ):
+        """ Returns the neighbors of lattice site site_idx """
+        # first find x and y position
+        cdef int index2 = site_idx%self.side_length
+        cdef int index1 = ((site_idx-index2)/self.side_length)%self.side_length
+        cdef int index0 = (site_idx-index1*self.side_length-index2)/self.side_length/self.side_length
+        
+        cdef int e_idx = (index2+1)%self.side_length #east
+        cdef int w_idx = (index2-1)%self.side_length #west
+        cdef int f_idx = (index1+1)%self.side_length #front
+        cdef int b_idx = (index1-1)%self.side_length #back
+        cdef int n_idx = (index0+1)%(self.side_length) #north
+        cdef int s_idx = (index0-1)%(self.side_length) #south
+
+        return self.row_col_to_idx(n_idx,index1,index2), self.row_col_to_idx(s_idx,index1,index2), self.row_col_to_idx(index0,f_idx,index2), self.row_col_to_idx(index0,b_idx,index2), self.row_col_to_idx(index0,index1,e_idx), self.row_col_to_idx(index0,index1,w_idx)
+
+    def row_col_to_idx(self, int index0, int index1, int index2):
+        return self.side_length*self.side_length*index0+index1*self.side_length+index2
+
 class SquareClass(object):
     def __init__(self, int side_length ):
         self.side_length = side_length
@@ -75,8 +111,7 @@ class LinearClass(object):
 #        dx = 1.*( site_idx2 - site_idx1 )
 #        return dx - nsites*np.floor( dx/nsites + 0.5 )
 
-#LatticeRegistry = {"linear":LinearClass, "square":SquareClass, "cubic":CubicClass }
-LatticeRegistry = {"linear":LinearClass, "square": SquareClass }
+LatticeRegistry = {"linear":LinearClass, "square":SquareClass, "cube":CubeClass }
 
 def InitializeArrays( int nsites, int max_steps ):
     cdef np.ndarray events = np.zeros(nsites,dtype=ct.c_int)
