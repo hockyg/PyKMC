@@ -46,6 +46,9 @@ class CubeClass(object):
     def row_col_to_idx(self, int index0, int index1, int index2):
         return self.side_length*self.side_length*index0+index1*self.side_length+index2
 
+    def RandomConfiguration(self, double temperature):
+        return RandomConfiguration(self.nsites, temperature)
+
 class SquareClass(object):
     def __init__(self, int side_length ):
         self.side_length = side_length
@@ -82,6 +85,9 @@ class SquareClass(object):
     def row_col_to_idx(self, int row, int col):
         return row*self.side_length+col
 
+    def RandomConfiguration(self, double temperature):
+        return RandomConfiguration(self.nsites, temperature)
+
 class LinearClass(object):
     def __init__(self, int side_length ):
         self.nsites = side_length
@@ -115,6 +121,9 @@ class LinearClass(object):
     
         return [neighborb], [neighborf] # second is update
 
+    def RandomConfiguration(self, double temperature):
+        return RandomConfiguration(self.nsites, temperature)
+
 LatticeRegistry = {"linear":LinearClass, "square":SquareClass, "cube":CubeClass }
 
 def InitializeArrays( int nsites):
@@ -132,7 +141,7 @@ def InitializeArrays( int nsites):
             "persistence_array": persistence_array,
            }
 
-def RandomConfiguration( int nsites, float temperature ):
+def RandomConfiguration( int nsites, double temperature ):
     """ Generates a random configuration commensurate with the temperature
        
         The average excitation value of a site in a non-interacting lattice gas with H = \sum_i n_i

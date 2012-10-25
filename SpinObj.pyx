@@ -85,7 +85,7 @@ class Simulation(object):
         nneighbors_per_site,nneighbors_update_per_site, neighbors, neighbors_update = lattice.Neighbors()
         self.nsites = nsites = lattice.nsites
 
-        self.configuration = model.RandomConfiguration( nsites, temperature )
+        self.configuration = lattice.RandomConfiguration( temperature )
         self.initial_configuration = self.configuration.copy()
         self.initial_down_spins = (self.initial_configuration<0.1).sum() # either zeros or -1's, depending on model
 
