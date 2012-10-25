@@ -42,8 +42,8 @@ class SquareClass(object):
         
         cdef int f_column = (col_num+1)%self.side_length
         cdef int b_column = (col_num-1)%self.side_length
-        cdef int u_row = (row_num+1)%(self.side_length)
-        cdef int d_row = (row_num-1)%(self.side_length)
+        cdef int u_row = (row_num-1)%(self.side_length)
+        cdef int d_row = (row_num+1)%(self.side_length)
 
         return [ self.row_col_to_idx(row_num,f_column), self.row_col_to_idx(d_row,col_num),  self.row_col_to_idx(d_row,f_column)], [ self.row_col_to_idx(row_num,b_column), self.row_col_to_idx(u_row,col_num), self.row_col_to_idx(u_row,b_column) ]
 
