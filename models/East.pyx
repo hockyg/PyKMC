@@ -18,11 +18,14 @@ class CubeClass(object):
         cdef int nneighbors_per_site = 3
         cdef int site_idx, j
         cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
         for site_idx in range(nsites):
-            neighbors_i = self.NeighborsI(site_idx)
+            neighbors_i, neighbors_i_update = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
                 neighbors[site_idx,j] = neighbors_i[j]
-        return nneighbors_per_site, neighbors
+            for j in range(nneighbors_per_site):
+                neighbors_update[site_idx,j] = neighbors_i_update[j]
+        return nneighbors_per_site, nneighbors_per_site, neighbors, neighbors_update
     
     def NeighborsI( self, int site_idx ):
         """ Returns the neighbors of lattice site site_idx """
@@ -31,14 +34,14 @@ class CubeClass(object):
         cdef int index1 = ((site_idx-index2)/self.side_length)%self.side_length
         cdef int index0 = (site_idx-index1*self.side_length-index2)/self.side_length/self.side_length
         
-#        cdef int e_idx = (index2+1)%self.side_length #east
+        cdef int e_idx = (index2+1)%self.side_length #east
         cdef int w_idx = (index2-1)%self.side_length #west
-#        cdef int f_idx = (index1+1)%self.side_length #front
+        cdef int f_idx = (index1+1)%self.side_length #front
         cdef int b_idx = (index1-1)%self.side_length #back
-#        cdef int n_idx = (index0+1)%(self.side_length) #north
+        cdef int n_idx = (index0+1)%(self.side_length) #north
         cdef int s_idx = (index0-1)%(self.side_length) #south
 
-        return self.row_col_to_idx(s_idx,index1,index2), self.row_col_to_idx(index0,b_idx,index2), self.row_col_to_idx(index0,index1,w_idx)
+        return [ self.row_col_to_idx(s_idx,index1,index2), self.row_col_to_idx(index0,b_idx,index2), self.row_col_to_idx(index0,index1,w_idx) ], [ self.row_col_to_idx(n_idx,index1,index2), self.row_col_to_idx(index0,f_idx,index2), self.row_col_to_idx(index0,index1,e_idx) ]
 
     def row_col_to_idx(self, int index0, int index1, int index2):
         return self.side_length*self.side_length*index0+index1*self.side_length+index2
@@ -54,24 +57,27 @@ class SquareClass(object):
         cdef int nneighbors_per_site = 2
         cdef int site_idx, j
         cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
         for site_idx in range(nsites):
-            neighbors_i = self.NeighborsI(site_idx)
+            neighbors_i, neighbors_i_update = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
                 neighbors[site_idx,j] = neighbors_i[j]
-        return nneighbors_per_site, neighbors
-    
+            for j in range(nneighbors_per_site):
+                neighbors_update[site_idx,j] = neighbors_i_update[j]
+        return nneighbors_per_site, nneighbors_per_site, neighbors, neighbors_update
+   
     def NeighborsI( self, int site_idx ):
         """ Returns the neighbors of lattice site site_idx """
         # first find x and y position
         cdef int col_num = site_idx%self.side_length
         cdef int row_num = (site_idx-col_num)/self.side_length
         
-#        cdef int f_column = (col_num+1)%self.side_length
+        cdef int f_column = (col_num+1)%self.side_length
         cdef int b_column = (col_num-1)%self.side_length
-#        cdef int u_row = (row_num+1)%(self.side_length)
+        cdef int u_row = (row_num+1)%(self.side_length)
         cdef int d_row = (row_num-1)%(self.side_length)
 
-        return self.row_col_to_idx(row_num,b_column), self.row_col_to_idx(d_row,col_num)
+        return [ self.row_col_to_idx(row_num,b_column), self.row_col_to_idx(d_row,col_num) ], [ self.row_col_to_idx(row_num,f_column), self.row_col_to_idx(u_row,col_num) ]
 
     def row_col_to_idx(self, int row, int col):
         return row*self.side_length+col
@@ -87,25 +93,27 @@ class LinearClass(object):
         cdef int nneighbors_per_site = 1
         cdef int site_idx, j
         cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
         for site_idx in range(nsites):
-            neighbors_i = self.NeighborsI(site_idx, nsites)
+            neighbors_i, neighbors_i_update = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
                 neighbors[site_idx,j] = neighbors_i[j]
-        print neighbors
-        return nneighbors_per_site, neighbors
-    
-    def NeighborsI( self, int site_idx, int nsites ):
+            for j in range(nneighbors_per_site):
+                neighbors_update[site_idx,j] = neighbors_i_update[j]
+        return nneighbors_per_site, nneighbors_per_site, neighbors, neighbors_update
+ 
+    def NeighborsI( self, int site_idx):
         """ Returns the neighbors of lattice site site_idx """
         # forward neighbor
-#        cdef int neighborf = site_idx + 1
-        # note, in the next line, would want floor( neighborf/nsites ) but since these are ints, uses auto flooring property of python.
+        cdef int neighborf = site_idx + 1
+        # note, in the next line, would want floor( neighborf/self.side_length ) but since these are ints, uses auto flooring property of python.
         # seems to work and be over 10x faster, but potential problem area later
-        #neighborf = neighborf - nsites*( neighborf/ nsites )
+        neighborf = neighborf - self.side_length*( neighborf/ self.side_length )
         # backward neighbor
         cdef int neighborb = site_idx - 1
-        neighborb = neighborb - nsites*( neighborb/ nsites )
+        neighborb = neighborb - self.side_length*( neighborb/ self.side_length )
     
-        return [neighborb]
+        return [neighborb], [neighborf] # second is update
 
 LatticeRegistry = {"linear":LinearClass, "square":SquareClass, "cube":CubeClass }
 

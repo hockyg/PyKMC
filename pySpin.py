@@ -35,6 +35,7 @@ def simulate(options):
         import random
         seed=random.SystemRandom().randint(0,10000000)
     np.random.seed(seed)
+    print >>verbose_out,"\tUsing seed: %i"%seed
 
     if options.input is not None:
         print "Reading input not currently supported"
@@ -56,18 +57,19 @@ def simulate(options):
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())
         C.setup_spin_system(simulation.system.SD)
         p1,p2 = persistence( simulation.nsites, simulation.initial_down_spins, simulation.system.persistence_array)
-        #print simulation.system.time, simulation.system.configuration, p1, p2, c_to_T_ideal( simulation.nsites, simulation.system.configuration )
+        print simulation.system.time, simulation.system.configuration, p1, p2, c_to_T_ideal( simulation.nsites, simulation.system.configuration )
 
-        for i in range(simulation.max_steps):
+        for i in range(10):
 #            print simulation.system.event_ref_rates[:simulation.system.n_possible_events]
-            return_val = C.run_kmc_spin(1,simulation.system.SD)
+            return_val = C.run_kmc_spin(simulation.max_steps/10,simulation.system.SD)
+#            np.savetxt(sys.stdout,simulation.system.event_rates,fmt="%3.2f")
             if return_val == -1: 
                 print "No more possible moves"
                 break
             p1,p2 = persistence( simulation.nsites, simulation.initial_down_spins, simulation.system.persistence_array)
             if options.output_prefix:
                 simulation.write_frame()
-            print simulation.system.time, simulation.system.configuration, p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.configuration )
+            print "%.2f"%simulation.system.time, simulation.system.configuration, p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.configuration )
 
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)

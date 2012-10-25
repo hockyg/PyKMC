@@ -16,12 +16,12 @@ from SpinUtil import *
 ModelRegistry = {}
 
 # try to make this more general. perhaps move later?
-from lattice import linear
-from models import FA
+from models import FA, East
 
 ModelRegistry[FA.model_name] = FA
+ModelRegistry[East.model_name] = East
 
-model_dict = {"FA":0}
+model_dict = {"FA":0, "East":1}
 
 #definitions
 c_int = ct.c_int
@@ -82,7 +82,7 @@ class Simulation(object):
         model = ModelRegistry[self.model_name]
 
         lattice = model.LatticeRegistry[lattice_name](side_length)
-        nneighbors_per_site, neighbors = lattice.Neighbors()
+        nneighbors_per_site,nneighbors_update_per_site, neighbors, neighbors_update = lattice.Neighbors()
         self.nsites = nsites = lattice.nsites
 
         self.configuration = model.RandomConfiguration( nsites, temperature )
@@ -93,7 +93,9 @@ class Simulation(object):
         self.system = SpinSys()
         self.system.nsites = nsites
         self.system.nneighbors_per_site = nneighbors_per_site
+        self.system.nneighbors_update_per_site = nneighbors_update_per_site
         self.system.neighbors = neighbors
+        self.system.neighbors_update = neighbors_update
         self.system.model_number = model_dict[self.model_name]
         self.system.current_step = 0
         self.system.n_possible_events = 0
@@ -220,7 +222,9 @@ class SimData(ct.Structure):
         #lattice stuff
                 ("nsites",c_int),
                 ("nneighbors_per_site",c_int), 
+                ("nneighbors_update_per_site",c_int), 
                 ("neighbors",c_void_p),
+                ("neighbors_update",c_void_p),
         # simulation stuff
                 ("model_number",c_int),
                 ("current_step",c_int),

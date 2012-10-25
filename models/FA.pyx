@@ -23,7 +23,7 @@ class CubeClass(object):
             neighbors_i = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
                 neighbors[site_idx,j] = neighbors_i[j]
-        return nneighbors_per_site, neighbors
+        return nneighbors_per_site, nneighbors_per_site, neighbors, neighbors
     
     def NeighborsI( self, int site_idx ):
         """ Returns the neighbors of lattice site site_idx """
@@ -59,7 +59,7 @@ class SquareClass(object):
             neighbors_i = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
                 neighbors[site_idx,j] = neighbors_i[j]
-        return nneighbors_per_site, neighbors
+        return nneighbors_per_site, nneighbors_per_site, neighbors, neighbors
     
     def NeighborsI( self, int site_idx ):
         """ Returns the neighbors of lattice site site_idx """
@@ -79,6 +79,7 @@ class SquareClass(object):
 
 class LinearClass(object):
     def __init__(self, int side_length ):
+        self.side_length = side_length
         self.nsites = side_length
 
     def Neighbors(self):
@@ -92,7 +93,7 @@ class LinearClass(object):
             neighbors_i = self.NeighborsI(site_idx, nsites)
             for j in range(nneighbors_per_site):
                 neighbors[site_idx,j] = neighbors_i[j]
-        return nneighbors_per_site, neighbors
+        return nneighbors_per_site, nneighbors_per_site, neighbors, neighbors
     
     def NeighborsI( self, int site_idx, int nsites ):
         """ Returns the neighbors of lattice site site_idx """

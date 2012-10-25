@@ -8,7 +8,9 @@ struct SimData{
     //lattice stuff
     int nsites;
     int nneighbors_per_site;
+    int nneighbors_update_per_site;
     int *neighbors;
+    int *neighbors_update;
     //simulation stuff
     int model_number;
     int current_step;
