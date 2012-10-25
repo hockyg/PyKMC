@@ -36,8 +36,8 @@ class CubeClass(object):
         cdef int w_idx = (index2-1)%self.side_length #west
         cdef int f_idx = (index1+1)%self.side_length #front
         cdef int b_idx = (index1-1)%self.side_length #back
-        cdef int n_idx = (index0+1)%(self.side_length) #north
-        cdef int s_idx = (index0-1)%(self.side_length) #south
+        cdef int n_idx = (index0-1)%(self.side_length) #north
+        cdef int s_idx = (index0+1)%(self.side_length) #south
 
         return self.row_col_to_idx(n_idx,index1,index2), self.row_col_to_idx(s_idx,index1,index2), self.row_col_to_idx(index0,f_idx,index2), self.row_col_to_idx(index0,b_idx,index2), self.row_col_to_idx(index0,index1,e_idx), self.row_col_to_idx(index0,index1,w_idx)
 
@@ -72,8 +72,8 @@ class SquareClass(object):
         
         cdef int f_column = (col_num+1)%self.side_length
         cdef int b_column = (col_num-1)%self.side_length
-        cdef int u_row = (row_num+1)%(self.side_length)
-        cdef int d_row = (row_num-1)%(self.side_length)
+        cdef int u_row = (row_num-1)%(self.side_length)
+        cdef int d_row = (row_num+1)%(self.side_length)
 
         return self.row_col_to_idx(row_num,f_column), self.row_col_to_idx(row_num,b_column), self.row_col_to_idx(u_row,col_num), self.row_col_to_idx(d_row,col_num)
 
