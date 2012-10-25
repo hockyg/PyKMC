@@ -28,6 +28,8 @@ def simulate(options):
     C.cleanup_spin_system.argtypes = (SimData_p,)
     C.run_kmc_spin.restype = c_int
     C.run_kmc_spin.argtypes=(c_int,SimData_p) # firt arg is number of steps
+    C.get_event_rate.restype = c_float
+    C.get_event_rate.argtypes = (c_int, SimData_p,)
 
     if options.seed is not None:
         seed=options.seed
@@ -57,11 +59,14 @@ def simulate(options):
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())
         C.setup_spin_system(simulation.system.SD)
         p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
-        print simulation.system.time, simulation.system.configuration, p1, p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
+        
+        print simulation.system.time, p1, p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ),model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
+#        print simulation.system.configuration.reshape((simulation.side_length,simulation.side_length))
+#        print simulation.system.dual_configuration.reshape((simulation.side_length,simulation.side_length))
 
-        for i in range(10):
+        for i in range(simulation.max_steps):
 #            print simulation.system.event_ref_rates[:simulation.system.n_possible_events]
-            return_val = C.run_kmc_spin(simulation.max_steps/10,simulation.system.SD)
+            return_val = C.run_kmc_spin(1,simulation.system.SD)
 #            np.savetxt(sys.stdout,simulation.system.event_rates,fmt="%3.2f")
             if return_val == -1: 
                 print "No more possible moves"
@@ -69,7 +74,17 @@ def simulate(options):
             p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
             if options.output_prefix:
                 simulation.write_frame()
-            print "%.2f"%simulation.system.time, simulation.system.configuration, p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
+            print "Time: %.2e"%simulation.system.time,p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
+
+#            tmp_configuration = simulation.system.configuration.copy()
+#            for i in range(simulation.nsites):
+#                tmp_configuration[i] = -1*tmp_configuration[i]
+#                if np.abs(C.get_event_rate(i,simulation.system.SD)-min(1, np.exp(-1*(model.SquareEnergy( tmp_configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site ) - model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site ))/simulation.system.temp)))>0.001: print i, C.get_event_rate(i,simulation.system.SD), model.SquareEnergy( tmp_configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site ) - model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
+#                tmp_configuration[i] = -1*tmp_configuration[i]
+
+
+#            print simulation.system.configuration.reshape((simulation.side_length,simulation.side_length))
+#            print simulation.system.dual_configuration.reshape((simulation.side_length,simulation.side_length))
 
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)

@@ -23,16 +23,17 @@ class SquareClass(object):
         """ Calculates all neighbors for all sites """
         cdef int nsites = self.nsites
         cdef int nneighbors_per_site = 3
+        cdef int nneighbors_update_per_site = 8
         cdef int site_idx, j
         cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
-        cdef np.ndarray[np.int_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_update_per_site),dtype=ct.c_int)
         for site_idx in range(nsites):
             neighbors_i, neighbors_i_update = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
                 neighbors[site_idx,j] = neighbors_i[j]
-            for j in range(nneighbors_per_site):
+            for j in range(nneighbors_update_per_site):
                 neighbors_update[site_idx,j] = neighbors_i_update[j]
-        return nneighbors_per_site, nneighbors_per_site, neighbors, neighbors_update
+        return nneighbors_per_site, nneighbors_update_per_site, neighbors, neighbors_update
    
     def NeighborsI( self, int site_idx ):
         """ Returns the neighbors of lattice site site_idx """
@@ -45,7 +46,21 @@ class SquareClass(object):
         cdef int u_row = (row_num-1)%(self.side_length)
         cdef int d_row = (row_num+1)%(self.side_length)
 
-        return [ self.row_col_to_idx(row_num,f_column), self.row_col_to_idx(d_row,col_num),  self.row_col_to_idx(d_row,f_column)], [ self.row_col_to_idx(row_num,b_column), self.row_col_to_idx(u_row,col_num), self.row_col_to_idx(u_row,b_column) ]
+        # first neighbors, then neighbors to update
+        # first 3 of neighbor update have this site in their plaquette
+        return [ 
+                 self.row_col_to_idx(row_num,f_column),
+                 self.row_col_to_idx(d_row,col_num),
+                 self.row_col_to_idx(d_row,f_column) ], \
+               [ 
+                 self.row_col_to_idx(row_num,b_column), 
+                 self.row_col_to_idx(u_row,col_num), 
+                 self.row_col_to_idx(u_row,b_column), 
+                 self.row_col_to_idx(row_num,f_column), 
+                 self.row_col_to_idx(u_row,f_column), 
+                 self.row_col_to_idx(d_row,col_num), 
+                 self.row_col_to_idx(d_row,b_column), 
+                 self.row_col_to_idx(d_row,f_column),  ],
 
     def row_col_to_idx(self, int row, int col):
         return row*self.side_length+col
@@ -99,8 +114,24 @@ class SquareClass(object):
 
         return configuration.flatten(), dual_configuration.flatten()
 
+           
 LatticeRegistry = {"square":SquareClass}
 
+def SquareEnergy(np.ndarray[np.int_t,ndim=1] configuration,np.ndarray[np.int_t,ndim=2] neighbors, int nsites, int nneighbors_per_site):
+    cdef int i,j
+    cdef int spin_prod
+    cdef double site_e, total_e
+    cdef int neighbor_idx
+    total_e = 0.0
+    for i in range(nsites):
+        spin_prod = configuration[i]
+        for j in range(nneighbors_per_site):
+            neighbor_idx = neighbors[i,j] 
+            spin_prod = spin_prod*configuration[neighbor_idx]
+        site_e = -(spin_prod-1)/2
+        total_e = total_e + site_e
+    return total_e
+ 
 def InitializeArrays( int nsites ):
     cdef np.ndarray events = np.zeros(nsites,dtype=ct.c_int)
     cdef np.ndarray event_rates = np.zeros(nsites,dtype=ct.c_float)

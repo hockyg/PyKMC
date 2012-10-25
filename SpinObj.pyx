@@ -73,6 +73,7 @@ class Simulation(object):
         self.dual_configuration = None
         self.command_line_options = None
         self.final_options = None
+        self.side_length = side_length
 
         self.lattice_name = lattice_name
         self.model_name = model_name
