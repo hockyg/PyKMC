@@ -107,7 +107,7 @@ class Simulation(object):
         self.system.configuration = self.configuration
         self.system.initial_configuration = self.initial_configuration
 
-        sys_arrays = ModelRegistry[self.model_name].InitializeArrays( self.nsites, self.max_steps )
+        sys_arrays = ModelRegistry[self.model_name].InitializeArrays( self.nsites )
         for key in sys_arrays.keys():
             setattr( self.system, key, sys_arrays[key] )
 

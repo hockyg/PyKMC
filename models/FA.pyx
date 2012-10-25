@@ -114,7 +114,7 @@ class LinearClass(object):
 
 LatticeRegistry = {"linear":LinearClass, "square":SquareClass, "cube":CubeClass }
 
-def InitializeArrays( int nsites, int max_steps ):
+def InitializeArrays( int nsites ):
     cdef np.ndarray events = np.zeros(nsites,dtype=ct.c_int)
     cdef np.ndarray event_rates = np.zeros(nsites,dtype=ct.c_float)
     cdef np.ndarray event_refs = -1*np.ones(nsites,dtype=ct.c_int)
