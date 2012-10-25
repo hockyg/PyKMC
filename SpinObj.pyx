@@ -16,12 +16,14 @@ from SpinUtil import *
 ModelRegistry = {}
 
 # try to make this more general. perhaps move later?
-from models import FA, East
+from models import FA, East, Plaquette
 
 ModelRegistry[FA.model_name] = FA
 ModelRegistry[East.model_name] = East
+ModelRegistry[Plaquette.model_name] = Plaquette
 
-model_dict = {"FA":0, "East":1}
+model_dict = {"FA":0, "East":1, "Plaquette":10}
+has_dual = ["Plaquette"]
 
 #definitions
 c_int = ct.c_int
@@ -68,6 +70,7 @@ class Simulation(object):
 
     def initialize_new(self,lattice_name,model_name,side_length,temperature,max_steps,seed=0):
         self.initial_configuration = None
+        self.dual_configuration = None
         self.command_line_options = None
         self.final_options = None
 
@@ -85,9 +88,21 @@ class Simulation(object):
         nneighbors_per_site,nneighbors_update_per_site, neighbors, neighbors_update = lattice.Neighbors()
         self.nsites = nsites = lattice.nsites
 
-        self.configuration = lattice.RandomConfiguration( temperature )
+        if self.model_name in has_dual:
+            self.configuration, self.dual_configuration = lattice.RandomConfiguration( temperature )
+        else:
+            self.configuration = lattice.RandomConfiguration( temperature )
+            self.dual_configuration = self.configuration # shouldn't take up any space, just pointer to same array
+
         self.initial_configuration = self.configuration.copy()
-        self.initial_down_spins = (self.initial_configuration<0.1).sum() # either zeros or -1's, depending on model
+        if self.model_name in ["FA","East"]:
+            self.initial_nonexcited = (self.initial_configuration<0.1).sum() # zeros
+        elif self.model_name in ["Plaquette"]:
+            self.initial_nonexcited = (self.initial_configuration>0.1).sum() # ones
+        else:
+            print "In SpinObj.pyx, have not defined which spin values are non-excited"
+            sys.exit(2)
+
 
         # set up system object
         self.system = SpinSys()
@@ -106,6 +121,7 @@ class Simulation(object):
 
         self.system.configuration = self.configuration
         self.system.initial_configuration = self.initial_configuration
+        self.system.dual_configuration = self.dual_configuration
 
         sys_arrays = ModelRegistry[self.model_name].InitializeArrays( self.nsites )
         for key in sys_arrays.keys():
@@ -235,6 +251,7 @@ class SimData(ct.Structure):
                 ("time",c_float), 
                 ("configuration",c_void_p),
                 ("initial_configuration",c_void_p),
+                ("dual_configuration",c_void_p),
         # rate stuff
                 ("events",c_void_p),
                 ("event_refs",c_void_p),

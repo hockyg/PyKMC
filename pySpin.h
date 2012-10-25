@@ -1,8 +1,8 @@
 #ifndef __PYSWAPMC_H__
 #define __PYSWAPMC_H__
 
-#define MAXZEROONEMODEL 10
-#define MAXPLUSMINUSMODEL 20
+#define MAXZEROONEMODEL 9 // There are 10 of these
+#define MAXPLUSMINUSMODEL 19 // There are 10 more of these
 
 struct SimData{
     //lattice stuff
@@ -21,6 +21,7 @@ struct SimData{
     float time;
     int *configuration;
     int *initial_configuration;
+    int *dual_configuration;
     // rate stuff
     int *events;        
     int *event_refs;

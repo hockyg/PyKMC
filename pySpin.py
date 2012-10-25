@@ -56,8 +56,8 @@ def simulate(options):
     try:
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())
         C.setup_spin_system(simulation.system.SD)
-        p1,p2 = persistence( simulation.nsites, simulation.initial_down_spins, simulation.system.persistence_array)
-        print simulation.system.time, simulation.system.configuration, p1, p2, c_to_T_ideal( simulation.nsites, simulation.system.configuration )
+        p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
+        print simulation.system.time, simulation.system.configuration, p1, p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
 
         for i in range(10):
 #            print simulation.system.event_ref_rates[:simulation.system.n_possible_events]
@@ -66,10 +66,10 @@ def simulate(options):
             if return_val == -1: 
                 print "No more possible moves"
                 break
-            p1,p2 = persistence( simulation.nsites, simulation.initial_down_spins, simulation.system.persistence_array)
+            p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
             if options.output_prefix:
                 simulation.write_frame()
-            print "%.2f"%simulation.system.time, simulation.system.configuration, p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.configuration )
+            print "%.2f"%simulation.system.time, simulation.system.configuration, p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
 
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)
