@@ -71,8 +71,9 @@ def simulate(options):
             min_time = average_time_per_step
             min_time_log = int(np.ceil(np.log10(min_time)))
             max_time_log = int(np.ceil(np.log10(options.max_time)))
+            print max_time_log
             prelim_stop_times = np.logspace( min_time_log, max_time_log, num=(max_time_log-min_time_log)*options.stops_per_decade+1)
-            simulation.stop_times = prelim_stop_times[prelim_stop_times<options.max_time]
+            simulation.stop_times = prelim_stop_times[prelim_stop_times<=options.max_time]
             simulation.nstages = len(simulation.stop_times)
           
         # before starting, write initial frame
