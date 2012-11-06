@@ -68,7 +68,7 @@ class Simulation(object):
     def __init__(self):
         pass
 
-    def initialize_new(self,lattice_name,model_name,side_length,temperature,max_steps,seed=0):
+    def initialize_new(self,lattice_name,model_name,side_length,temperature,max_time,seed=0):
         self.initial_configuration = None
         self.dual_configuration = None
         self.command_line_options = None
@@ -80,7 +80,7 @@ class Simulation(object):
 
         #self.reset_for_continue(reset_time=True)
 
-        self.max_steps = max_steps
+        self.max_time = max_time
 
         # set up lattice
         model = ModelRegistry[self.model_name]
@@ -96,6 +96,7 @@ class Simulation(object):
             self.dual_configuration = self.configuration # shouldn't take up any space, just pointer to same array
 
         self.initial_configuration = self.configuration.copy()
+        self.prev_configuration = self.configuration.copy()
         if self.model_name in ["FA","East"]:
             self.initial_nonexcited = (self.initial_configuration<0.1).sum() # zeros
         elif self.model_name in ["Plaquette"]:
@@ -121,7 +122,7 @@ class Simulation(object):
         self.system.time = 0.0
 
         self.system.configuration = self.configuration
-        self.system.initial_configuration = self.initial_configuration
+        self.system.prev_configuration = self.prev_configuration
         self.system.dual_configuration = self.dual_configuration
 
         sys_arrays = ModelRegistry[self.model_name].InitializeArrays( self.nsites )
@@ -251,9 +252,10 @@ class SimData(ct.Structure):
                 ("betaexp",c_double), 
                 ("time",c_float), 
                 ("configuration",c_void_p),
-                ("initial_configuration",c_void_p),
+                ("prev_configuration",c_void_p),
                 ("dual_configuration",c_void_p),
         # rate stuff
+                ("total_rate",c_float),
                 ("events",c_void_p),
                 ("event_refs",c_void_p),
                 ("event_rates",c_void_p),

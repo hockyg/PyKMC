@@ -155,6 +155,7 @@ double sum_rates( struct SimData *SD ){
         total_rate = total_rate + SD->event_ref_rates[i];
         SD->cumulative_rates[i] = SD->cumulative_rates[i-1] + SD->event_ref_rates[i];
     }
+    SD->total_rate = total_rate;
     return total_rate;
 } 
 
@@ -188,7 +189,7 @@ int b_find_event( float searchval, struct SimData *SD){
     return idx1;
 }
 
-int run_kmc_spin(int nsteps,struct SimData *SD){
+int run_kmc_spin_steps(int nsteps,struct SimData *SD){
     int step = 0;
     int return_val = 0;
     int n_possible_events = SD->n_possible_events;
@@ -217,10 +218,47 @@ int run_kmc_spin(int nsteps,struct SimData *SD){
     SD->time = t;
     return return_val;
 }
+int copy_configuration_prev(struct SimData *SD){
+    int i;
+    for(i=0;i<SD->nsites;i++){ 
+        SD->prev_configuration[i] = SD->configuration[i];
+    }
+    return 0;
+}
+
+int run_kmc_spin(float stop_time,struct SimData *SD){
+    int step = 0;
+    int n_possible_events = SD->n_possible_events;
+    int return_val = 0;
+    float t = SD->time;
+    float dt = 0;
+    while(t<stop_time){
+        if(n_possible_events<1){
+            return_val = -1;
+            break;
+        }
+
+        float prob = get_frandom();
+        float total_rate = sum_rates(SD);
+        dt = -log(prob)/total_rate;
+        t += dt;
+        if(t >= stop_time ){
+            copy_configuration_prev(SD);
+        }
+
+        int event_i = b_find_event( prob*total_rate, SD);
+        update_configuration( event_i, SD );
+        n_possible_events = update_events_i( event_i, SD );
+        step++;
+    }
+    SD->time = t;
+    return return_val;
+}
 
 int setup_spin_system(struct SimData *SD){
     set_seed(SD->seed);
     all_events(SD);
+    sum_rates(SD);
     return 0;
 }
 

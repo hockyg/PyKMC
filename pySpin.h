@@ -20,9 +20,10 @@ struct SimData{
     double betaexp;
     float time;
     int *configuration;
-    int *initial_configuration;
+    int *prev_configuration;
     int *dual_configuration;
     // rate stuff
+    float total_rate;
     int *events;        
     int *event_refs;
     float *event_rates;

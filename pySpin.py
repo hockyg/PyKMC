@@ -27,7 +27,7 @@ def simulate(options):
     C.cleanup_spin_system.restype = c_int
     C.cleanup_spin_system.argtypes = (SimData_p,)
     C.run_kmc_spin.restype = c_int
-    C.run_kmc_spin.argtypes=(c_int,SimData_p) # firt arg is number of steps
+    C.run_kmc_spin.argtypes=(c_float,SimData_p) # firt arg is stop_time
     C.get_event_rate.restype = c_float
     C.get_event_rate.argtypes = (c_int, SimData_p,)
 
@@ -44,47 +44,58 @@ def simulate(options):
         sys.exit(1)
     else:
         simulation = Simulation()
-        simulation.initialize_new( options.lattice, options.model, options.side_length,
-                                   options.temperature, options.max_steps, seed=seed )
+        simulation.initialize_new( options.lattice, options.model, 
+                                   options.side_length, options.temperature, 
+                                   options.max_time, seed=seed )
         simulation.command_line_options = options
-        # set up write, restart, and info times
-        options.trj_time = 1
-        options.restart_time = 1
 
         simulation.final_options = options
         if options.output_prefix:
             simulation.setup_output_files()
 
+        if options.info_time <= 0 or options.info_time > options.max_time:
+            options.info_time = options.max_time
+
     try:
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())
         C.setup_spin_system(simulation.system.SD)
-        p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
-        
-        print simulation.system.time, p1, p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ),model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
-#        print simulation.system.configuration.reshape((simulation.side_length,simulation.side_length))
-#        print simulation.system.dual_configuration.reshape((simulation.side_length,simulation.side_length))
+        average_time_per_step = 1/simulation.system.SD.total_rate
 
-        for i in range(simulation.max_steps):
-#            print simulation.system.event_ref_rates[:simulation.system.n_possible_events]
-            return_val = C.run_kmc_spin(1,simulation.system.SD)
-#            np.savetxt(sys.stdout,simulation.system.event_rates,fmt="%3.2f")
+        # now set up desired write out times
+        if options.linear_time:
+            simulation.stop_times = np.array(np.arange(options.info_time,options.max_time+options.info_time,options.info_time),dtype=c_float)
+            simulation.nstages = len(simulation.stop_times)
+            
+            pass
+        else: # log time
+            min_time = average_time_per_step
+            min_time_log = int(np.ceil(np.log10(min_time)))
+            max_time_log = int(np.ceil(np.log10(options.max_time)))
+            prelim_stop_times = np.logspace( min_time_log, max_time_log, num=(max_time_log-min_time_log)*options.stops_per_decade+1)
+            simulation.stop_times = prelim_stop_times[prelim_stop_times<options.max_time]
+            simulation.nstages = len(simulation.stop_times)
+          
+        # before starting, write initial frame
+        if options.output_prefix:
+            simulation.write_frame()
+
+        #p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
+        
+        #print "Time: %.2e"%simulation.system.time, p1, p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ),model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
+        #print "Time: %.2e"%simulation.system.time, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ),model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
+        print "Time: %.2e"%simulation.system.time
+
+        for frame_idx,stop_time in enumerate(simulation.stop_times):
+            return_val = C.run_kmc_spin(stop_time, simulation.system.SD)
             if return_val == -1: 
                 print "No more possible moves"
                 break
-            p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
+            #p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
             if options.output_prefix:
                 simulation.write_frame()
-            print "Time: %.2e"%simulation.system.time,p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
-
-#            tmp_configuration = simulation.system.configuration.copy()
-#            for i in range(simulation.nsites):
-#                tmp_configuration[i] = -1*tmp_configuration[i]
-#                if np.abs(C.get_event_rate(i,simulation.system.SD)-min(1, np.exp(-1*(model.SquareEnergy( tmp_configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site ) - model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site ))/simulation.system.temp)))>0.001: print i, C.get_event_rate(i,simulation.system.SD), model.SquareEnergy( tmp_configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site ) - model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
-#                tmp_configuration[i] = -1*tmp_configuration[i]
-
-
-#            print simulation.system.configuration.reshape((simulation.side_length,simulation.side_length))
-#            print simulation.system.dual_configuration.reshape((simulation.side_length,simulation.side_length))
+            #print "Time: %.2e"%simulation.system.time,p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
+            #print "Time: %.2e"%simulation.system.time, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
+            print "Time: %.2e"%simulation.system.time
 
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)
@@ -105,20 +116,28 @@ def main():
                       help="Temperature to use (default: %default)" )
     parser.add_option('-L', '--side_length',dest="side_length",default=10, type=int,
                       help="Side length of linear, square or cubic lattice to simulate. Total number of sites for other lattices, if ever implemented (default: %default)" )
-    parser.add_option('-s', '--max_steps', default=100, type=int,
-                      help="Maximum number of steps to simulate (default: %default)" )
+
+#    parser.add_option('-s', '--max_steps', default=100, type=int,
+#                      help="Maximum number of steps to simulate (default: %default)" )
+    parser.add_option('-t', '--max_time', default=1, type=float,
+                      help="Maximum time up to which to simulate (default: %default)" )
     parser.add_option('--seed', default=None, type=int,
                       help="Random seed for simulation (default: %default)" )
-    parser.add_option("-o","--output_prefix",default=None,help="Set prefix for output files (default:none)")
-    parser.add_option("-v","--verbose",help="Print useful execution information",dest="verbose",default=True,action="store_true")
+
+    write_group=OptionGroup(parser,"Options for writing out","Options for writing out information to the screen and files")
+    write_group.add_option("-o","--output_prefix",default=None,help="Set prefix for output files (default:none)")
+    write_group.add_option("-v","--verbose",help="Print useful execution information",dest="verbose",default=True,action="store_true")
+    write_group.add_option("--linear_time",help="Save information on a linear time scale (default: logarithmic)",default=False,action="store_true")
+    write_group.add_option("--info_time",default=-1,type=float,help="Set how often simulation info and configurations are written for linear time (default:none)")
+    write_group.add_option("--stops_per_decade",default=10,type=int,help="For logarithmic writing. Set how many times to write per decade of simulation time (default:none)")
+    write_group.add_option("--write_trj",default=False,action="store_true",help="Specify whether or not to write a trajectory (default:none)")
+
+    parser.add_option_group(write_group)
     options, args = parser.parse_args()
- 
-    # add a more complicated option for this later, once deciding on writing out
-    info_steps = options.max_steps/10
  
     if options.seed is not None and options.seed < 1:
         parser.error("Seed must be assigned a positive value")
- 
+
     if not options.model in ModelRegistry:
         print "Model not yet defined. Please select from:"
         print "\t",ModelRegistry.keys()
