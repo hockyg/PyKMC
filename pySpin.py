@@ -84,8 +84,10 @@ def simulate(options):
         
         #print "Time: %.2e"%simulation.system.time, p1, p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ),model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
         #print "Time: %.2e"%simulation.system.time, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ),model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
-        print "Time: %.2e"%simulation.system.time
+        print "Time: %.2e Energy: %f"%( simulation.system.time, simulation.system.total_energy )
 
+        sim_timer = Timer()
+        last_time = simulation.stop_times[-1]
         for frame_idx,stop_time in enumerate(simulation.stop_times):
             return_val = C.run_kmc_spin(stop_time, simulation.system.SD)
             if return_val == -1: 
@@ -96,7 +98,10 @@ def simulate(options):
                 simulation.write_frame()
             #print "Time: %.2e"%simulation.system.time,p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
             #print "Time: %.2e"%simulation.system.time, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
-            print "Time: %.2e"%simulation.system.time
+            elapsed_time = sim_timer.gettime()
+            time_remaining = last_time - stop_time
+            est_final_sim_time = elapsed_time / ( 1 - (time_remaining)/last_time )
+            print "Time: %.2e Energy: %f SimTime: %f (etr: %f)"%( simulation.system.time, simulation.system.total_energy, elapsed_time, est_final_sim_time - elapsed_time )
 
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)

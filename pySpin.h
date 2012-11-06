@@ -18,6 +18,7 @@ struct SimData{
     int seed;
     double temp;
     double betaexp;
+    double total_energy;
     float time;
     int *configuration;
     int *prev_configuration;

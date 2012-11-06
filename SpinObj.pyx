@@ -119,6 +119,7 @@ class Simulation(object):
         self.system.seed = self.seed = seed
         self.system.temp = temperature
         self.system.betaexp = np.exp(-1./temperature)
+        self.system.total_energy = 0.0
         self.system.time = 0.0
 
         self.system.configuration = self.configuration
@@ -250,6 +251,7 @@ class SimData(ct.Structure):
                 ("seed",c_int),
                 ("temp",c_double),
                 ("betaexp",c_double), 
+                ("total_energy",c_double), 
                 ("time",c_float), 
                 ("configuration",c_void_p),
                 ("prev_configuration",c_void_p),

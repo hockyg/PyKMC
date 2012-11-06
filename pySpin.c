@@ -265,3 +265,4 @@ int setup_spin_system(struct SimData *SD){
 int cleanup_spin_system(struct SimData *SD){
     return 0;
 }
+
