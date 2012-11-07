@@ -28,8 +28,8 @@ def simulate(options):
     C.cleanup_spin_system.argtypes = (SimData_p,)
     C.run_kmc_spin.restype = c_int
     C.run_kmc_spin.argtypes=(c_float,SimData_p) # firt arg is stop_time
-    C.get_event_rate.restype = c_float
-    C.get_event_rate.argtypes = (c_int, SimData_p,)
+#    C.get_event_type.restype = c_int
+#    C.get_event_type.argtypes = (c_int, SimData_p,)
 
     if options.seed is not None:
         seed=options.seed
@@ -101,7 +101,7 @@ def simulate(options):
             elapsed_time = sim_timer.gettime()
             time_remaining = last_time - stop_time
             est_final_sim_time = elapsed_time / ( 1 - (time_remaining)/last_time )
-            print "Time: %.2e Energy: %f SimTime: %f (etr: %f)"%( simulation.system.time, simulation.system.total_energy, elapsed_time, est_final_sim_time - elapsed_time )
+            print "Time: %.2e Energy: %f SimTime: %f (etr: %f)"%( simulation.system.time, simulation.system.total_energy, elapsed_time, est_final_sim_time - elapsed_time ), c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
 
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)

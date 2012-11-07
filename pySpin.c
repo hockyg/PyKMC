@@ -6,11 +6,12 @@
 #include "pySpin.h"
 #include "random.h"
 
-float get_event_rate(int site_idx, struct SimData *SD){
+int get_event_type(int site_idx, struct SimData *SD){
     int j;
+    int event_type = -1;
     int nneighbors_per_site = SD->nneighbors_per_site;
-    float event_rate = 0.0;
-    if(SD->model_number<2){ // FA
+    //float event_rate = 0.0;
+    if(SD->model_number < 2){ // FA or East
         float constraint = 0.0;
         int state_i = SD->configuration[site_idx];
         //note this depends on the lattice being properly declared such that 
@@ -18,7 +19,8 @@ float get_event_rate(int site_idx, struct SimData *SD){
         for(j=0;j<nneighbors_per_site;j++){
             constraint+=SD->configuration[SD->neighbors[nneighbors_per_site*site_idx+j]];
         }
-        event_rate = (1-state_i)*constraint*SD->betaexp + state_i*constraint;
+        event_type = 2*constraint+state_i;
+//        event_rate = (1-state_i)*constraint*SD->betaexp + state_i*constraint;
 //        printf("%i %i %f %f %f\n",site_idx,state_i,constraint,SD->betaexp,event_rate);
     }
     else if(SD->model_number==10){ // Plaquette
@@ -30,12 +32,16 @@ float get_event_rate(int site_idx, struct SimData *SD){
             excitations_created += ( 1 - 2*SD->dual_configuration[neighbor_site] );
         }
         //metropolis rate
-        event_rate = (excitations_created>0)*pow(SD->betaexp,excitations_created) + (excitations_created<=0); // if n plaquettes are excited, rate is exp(-n * beta). otherwise rate 1 (decreases energy or keeps same)
+        //event_rate = (excitations_created>0)*pow(SD->betaexp,excitations_created) + (excitations_created<=0); // if n plaquettes are excited, rate is exp(-n * beta). otherwise rate 1 (decreases energy or keeps same)
+
+//WARNING, next is for square plaquette only. need to generalize
+
+        event_type = excitations_created/2+2;
     }
     else{
-       printf("pySpin.c: Model number not yet supported by get_event_rate\n");
+       printf("pySpin.c: Model number not yet supported by get_event_type\n");
     }
-    return event_rate;
+    return event_type;
 }
 
 int switch_state( int state, int model_number ){
@@ -53,65 +59,89 @@ int switch_state( int state, int model_number ){
 
 
 int all_events( struct SimData *SD){
-    int i;
+    int i,j;
     int n_possible_events = 0;
     for(i=0;i<SD->nsites;i++){
         SD->events[i] = 0;
-        SD->event_rates[i] = 0.0;
+        SD->event_types[i] = -1;
         SD->event_refs[i] = -1;
-        SD->event_ref_rates[i] = 0.0;
+        for(j=0;j<SD->n_event_types;j++){
+            SD->events_by_type[j*SD->nsites+i]=0;
+        }
+    }
+    for(i=0;i<SD->n_event_types;i++){
+//        SD->event_rates[i] = 0.0;
+        SD->events_per_type[i] = 0.0;
         SD->cumulative_rates[i] = 0;
     }
+
     for(i=0;i<SD->nsites;i++){
-        float event_rate = get_event_rate(i,SD);
+//        float event_rate = get_event_rate(i,SD);
+        int event_type = get_event_type(i,SD);
         SD->events[i] = switch_state(SD->configuration[i],SD->model_number);
-        SD->event_rates[i] = event_rate;
-        if(event_rate>0){
-            SD->event_refs[n_possible_events] = i;
-            SD->event_ref_rates[n_possible_events] = event_rate;
+        SD->event_types[i] = event_type;
+        if(event_type>0){
+            int nevents_type_i = SD->events_per_type[event_type];
+            SD->events_by_type[event_type*SD->nsites+nevents_type_i] = i;
+            SD->event_refs[i] = nevents_type_i;
+            SD->events_per_type[event_type]++;
             n_possible_events++;
         }
     }
     SD->n_possible_events = n_possible_events;
+    for(i=0;i<SD->n_event_types;i++){
+        printf("type %i) rate: %f nevents: %i\n",i,SD->event_rates[i],SD->events_per_type[i]);
+    }
     return n_possible_events;
 }
 
-int update_events_i( int event_i, struct SimData *SD){
+int change_event_type( int i, int old_event_type, int new_event_type, struct SimData *SD){
+//first remove it from the old list (note, this hopefully should work even if last event in list)
+    int old_final_event_ref = SD->events_per_type[old_event_type];
+    int old_event_ref = SD->events_per_type[old_event_type];
+    // replace this event with event from end of list (may be same if this was last event)
+    SD->events_by_type[old_event_ref] = SD->events_by_type[old_final_event_ref];
+    // now negate final event
+    SD->events_by_type[old_event_type*SD->nsites+old_final_event_ref] = -1;
+    // and decrement number of events
+    SD->events_per_type[old_event_type] = old_final_event_ref - 1;
+
+// insert this site at end of new_event_type list
+    int new_event_ref = SD->events_per_type[new_event_type]+1;
+    SD->events_per_type[new_event_type] = new_event_ref;
+    SD->events_by_type[new_event_type*SD->nsites+new_event_ref] = i;
+    SD->event_types[i] = new_event_type;
+    SD->event_refs[i] = new_event_ref;
+
+}
+
+int update_events_i( int move_site, struct SimData *SD){
     int i,j,state_i;
-    int n_possible_events = 0;
-    float event_rate = 0.0;
+    //int n_possible_events = 0;
+    //float event_rate = 0.0;
     int model_number = SD->model_number;
     int nneighbors_update_per_site = SD->nneighbors_update_per_site;
 
     //first do it for this site
-    int site_idx = SD->event_refs[event_i]; // need this below
-    i = site_idx;
+//    int site_idx = SD->events_by_type[SD->event_types[event_i]*SD->nsites+SD->event_refs[event_i]]; // need this below
+    i = move_site;
     state_i = SD->configuration[i];
-    event_rate = get_event_rate(i,SD);
+    int old_event_type = SD->event_types[i];
+    int new_event_type = get_event_type(i,SD);
     SD->events[i] = switch_state( state_i, model_number );
-    SD->event_rates[i] = event_rate;
+    //now change where it is in the list of events for that type
+    change_event_type( i, old_event_type, new_event_type, SD );
 
     // now do it for neighbors this site affects
     for(j=0;j<nneighbors_update_per_site;j++){
-        i = SD->neighbors_update[nneighbors_update_per_site*site_idx+j];
+        i = SD->neighbors_update[nneighbors_update_per_site*move_site+j];
         state_i = SD->configuration[i];
-        event_rate = get_event_rate(i,SD);
+        old_event_type = SD->event_types[i];
+        new_event_type = get_event_type(i,SD);
         SD->events[i] = switch_state( state_i, model_number );
-        SD->event_rates[i] = event_rate;
+        change_event_type( i, old_event_type, new_event_type, SD );
     }
-   // now update possible events
-    for(i=0;i<SD->nsites;i++){
-        SD->event_refs[i] = -1;
-        SD->event_ref_rates[i] = 0.0;
-        event_rate = SD->event_rates[i];
-        if(event_rate>0){
-            SD->event_refs[n_possible_events] = i;
-            SD->event_ref_rates[n_possible_events] = event_rate;
-            n_possible_events++;
-        }
-    }
-    SD->n_possible_events = n_possible_events;
-    return n_possible_events;
+    return 0;
 }
 
 int update_configuration( int event_i, struct SimData *SD){
@@ -147,24 +177,30 @@ int update_configuration( int event_i, struct SimData *SD){
 double sum_rates( struct SimData *SD ){
     int i;
     double total_rate = 0.0;
-    if(SD->n_possible_events>0){
-        SD->cumulative_rates[0] = SD->event_ref_rates[0];
+    int n_possible_events = 0;
+    if(SD->n_event_types>0){
+        total_rate = SD->events_per_type[0]*SD->event_rates[0];
+        SD->cumulative_rates[0] = total_rate;
+        n_possible_events = SD->events_per_type[0];
     }
 
-    for(i=1;i<SD->n_possible_events;i++){
-        total_rate = total_rate + SD->event_ref_rates[i];
-        SD->cumulative_rates[i] = SD->cumulative_rates[i-1] + SD->event_ref_rates[i];
+    for(i=1;i<SD->n_event_types;i++){
+        float rate_type_i = SD->events_per_type[i]*SD->event_rates[i];
+        total_rate = total_rate + rate_type_i;
+        SD->cumulative_rates[i] = SD->cumulative_rates[i-1] + rate_type_i;
+        n_possible_events += SD->events_per_type[i];
     }
     SD->total_rate = total_rate;
+    SD->n_possible_events = n_possible_events;
     return total_rate;
 } 
 
 //binary search through cumulative event probabilities
 int b_find_event( float searchval, struct SimData *SD){
-    int final_event = SD->n_possible_events - 1;
+    int final_event = SD->n_event_types - 1;
     int idx0 = 0;
     int idx1 = final_event;
-    if ( SD->n_possible_events < 1 ){
+    if ( SD->n_event_types < 1 ){
         return -1;
     }
     if ( SD->cumulative_rates[0] > searchval ){
@@ -246,9 +282,11 @@ int run_kmc_spin(float stop_time,struct SimData *SD){
             copy_configuration_prev(SD);
         }
 
-        int event_i = b_find_event( prob*total_rate, SD);
-        update_configuration( event_i, SD );
-        n_possible_events = update_events_i( event_i, SD );
+        int event_type_i = b_find_event( prob*total_rate, SD);
+        int rand_event = get_irandom( 0, SD->events_per_type[event_type_i] );
+        int move_site = SD->events_by_type[event_type_i*SD->nsites+rand_event];
+        update_configuration( move_site, SD );
+        update_events_i( move_site, SD );
         step++;
     }
     SD->time = t;

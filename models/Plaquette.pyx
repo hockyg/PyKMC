@@ -18,6 +18,17 @@ class SquareClass(object):
     def __init__(self, int side_length ):
         self.side_length = side_length
         self.nsites = side_length*side_length
+        self.n_event_types = 5
+
+    def EventRates(self,double temp):
+        cdef int i
+        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_float)
+        cdef np.ndarray excitations_created_array = np.array( np.arange(-4.,5.,2), dtype=ct.c_float)
+        cdef float excitations_created
+        for i in range(5):
+            excitations_created = excitations_created_array[i];
+            event_rates[i] = (excitations_created>0)*np.exp(excitations_created/temp) + (excitations_created<=0);
+        return event_rates
 
     def Neighbors(self):
         """ Calculates all neighbors for all sites """
@@ -132,17 +143,22 @@ def SquareEnergy(np.ndarray[np.int_t,ndim=1] configuration,np.ndarray[np.int_t,n
         total_e = total_e + site_e
     return total_e
  
-def InitializeArrays( int nsites ):
+def InitializeArrays( int nsites, int n_event_types ):
     cdef np.ndarray events = np.zeros(nsites,dtype=ct.c_int)
-    cdef np.ndarray event_rates = np.zeros(nsites,dtype=ct.c_float)
+    cdef np.ndarray event_types = np.zeros(nsites,dtype=ct.c_int)
+    cdef np.ndarray events_by_type = np.zeros((n_event_types,nsites),dtype=ct.c_int)
+    cdef np.ndarray events_per_type = np.zeros(n_event_types,dtype=ct.c_int)
     cdef np.ndarray event_refs = -1*np.ones(nsites,dtype=ct.c_int)
-    cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=ct.c_float)
-    cdef np.ndarray cumulative_rates = np.zeros(nsites,dtype=ct.c_float)
+    cdef np.ndarray event_rates = np.zeros(n_event_types,dtype=ct.c_float)
+#    cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=ct.c_float)
+    cdef np.ndarray cumulative_rates = np.zeros(n_event_types,dtype=ct.c_float)
     cdef np.ndarray persistence_array= np.ones(nsites,dtype=ct.c_int)
     return {"events": events,
-            "event_rates": event_rates, 
+            "event_types": event_types,
+            "events_by_type": events_by_type,
+            "events_per_type": events_per_type,
             "event_refs": event_refs,
-            "event_ref_rates": event_ref_rates,
+            "event_rates": event_rates, 
             "cumulative_rates": cumulative_rates,
             "persistence_array": persistence_array,
            }

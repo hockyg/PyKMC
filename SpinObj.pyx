@@ -88,6 +88,8 @@ class Simulation(object):
         lattice = model.LatticeRegistry[lattice_name](side_length)
         nneighbors_per_site,nneighbors_update_per_site, neighbors, neighbors_update = lattice.Neighbors()
         self.nsites = nsites = lattice.nsites
+        self.n_event_types = n_event_types = lattice.n_event_types
+        event_rates = lattice.EventRates(temperature)
 
         if self.model_name in has_dual:
             self.configuration, self.dual_configuration = lattice.RandomConfiguration( temperature )
@@ -116,6 +118,7 @@ class Simulation(object):
         self.system.model_number = model_dict[self.model_name]
         self.system.current_step = 0
         self.system.n_possible_events = 0
+        self.system.n_event_types = self.n_event_types
         self.system.seed = self.seed = seed
         self.system.temp = temperature
         self.system.betaexp = np.exp(-1./temperature)
@@ -126,7 +129,8 @@ class Simulation(object):
         self.system.prev_configuration = self.prev_configuration
         self.system.dual_configuration = self.dual_configuration
 
-        sys_arrays = ModelRegistry[self.model_name].InitializeArrays( self.nsites )
+        sys_arrays = ModelRegistry[self.model_name].InitializeArrays( self.nsites, self.n_event_types )
+        sys_arrays["event_rates"] = np.array( event_rates, dtype=c_float )
         for key in sys_arrays.keys():
             setattr( self.system, key, sys_arrays[key] )
 
@@ -258,10 +262,14 @@ class SimData(ct.Structure):
                 ("dual_configuration",c_void_p),
         # rate stuff
                 ("total_rate",c_float),
+                ("n_event_types",c_int),
                 ("events",c_void_p),
+                ("event_types",c_void_p),
+                ("events_by_type",c_void_p),
+                ("events_per_type",c_void_p),
                 ("event_refs",c_void_p),
                 ("event_rates",c_void_p),
-                ("event_ref_rates",c_void_p),
+#                ("event_ref_rates",c_void_p),
                 ("cumulative_rates",c_void_p),
         # calculation stuff
                 ("persistence_array",c_void_p),
