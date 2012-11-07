@@ -203,12 +203,14 @@ double sum_rates( struct SimData *SD ){
     SD->total_rate = total_rate;
     SD->n_possible_events = n_possible_events;
     // debug code
-    /*
+/*
+    for(i=0;i<SD->nsites;i++) printf("%i ",SD->configuration[i]) ;
+    printf("\n");
     for(i=0;i<SD->n_event_types;i++){
         printf("type %i) rate: %f nevents: %i\n",i,SD->event_rates[i],SD->events_per_type[i]);
     }
     printf("n_possible_events: %i\n",n_possible_events);
-    */
+*/
     return total_rate;
 } 
 
