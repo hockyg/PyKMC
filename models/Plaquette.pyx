@@ -27,7 +27,7 @@ class SquareClass(object):
         cdef float excitations_created
         for i in range(5):
             excitations_created = excitations_created_array[i];
-            event_rates[i] = (excitations_created>0)*np.exp(excitations_created/temp) + (excitations_created<=0);
+            event_rates[i] = (excitations_created>0)*np.exp(-excitations_created/temp) + (excitations_created<=0);
         return event_rates
 
     def Neighbors(self):

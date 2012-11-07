@@ -35,7 +35,6 @@ int get_event_type(int site_idx, struct SimData *SD){
         //event_rate = (excitations_created>0)*pow(SD->betaexp,excitations_created) + (excitations_created<=0); // if n plaquettes are excited, rate is exp(-n * beta). otherwise rate 1 (decreases energy or keeps same)
 
 //WARNING, next is for square plaquette only. need to generalize
-
         event_type = excitations_created/2+2;
     }
     else{
@@ -80,7 +79,7 @@ int all_events( struct SimData *SD){
         int event_type = get_event_type(i,SD);
         SD->events[i] = switch_state(SD->configuration[i],SD->model_number);
         SD->event_types[i] = event_type;
-        if(event_type>0){
+        if(event_type>-1){
             int nevents_type_i = SD->events_per_type[event_type];
             SD->events_by_type[event_type*SD->nsites+nevents_type_i] = i;
             SD->event_refs[i] = nevents_type_i;
@@ -89,30 +88,41 @@ int all_events( struct SimData *SD){
         }
     }
     SD->n_possible_events = n_possible_events;
+    //debug code
+/*
     for(i=0;i<SD->n_event_types;i++){
         printf("type %i) rate: %f nevents: %i\n",i,SD->event_rates[i],SD->events_per_type[i]);
     }
+    for(i=0;i<SD->n_event_types;i++){
+        printf("%i )",i);
+        for(j=0;j<SD->events_per_type[i];j++) printf("%i ",SD->events_by_type[i*SD->nsites+j]);
+        printf("\n");
+    }
+*/
     return n_possible_events;
 }
 
 int change_event_type( int i, int old_event_type, int new_event_type, struct SimData *SD){
 //first remove it from the old list (note, this hopefully should work even if last event in list)
-    int old_final_event_ref = SD->events_per_type[old_event_type];
-    int old_event_ref = SD->events_per_type[old_event_type];
+    int nsites = SD->nsites;
+    int old_final_event_ref = SD->events_per_type[old_event_type]-1;
+    int old_event_ref = SD->event_refs[i];
     // replace this event with event from end of list (may be same if this was last event)
-    SD->events_by_type[old_event_ref] = SD->events_by_type[old_final_event_ref];
+    SD->events_by_type[old_event_type*nsites+old_event_ref] = SD->events_by_type[old_event_type*nsites+old_final_event_ref];
     // now negate final event
-    SD->events_by_type[old_event_type*SD->nsites+old_final_event_ref] = -1;
+    SD->events_by_type[old_event_type*nsites+old_final_event_ref] = -1;
     // and decrement number of events
-    SD->events_per_type[old_event_type] = old_final_event_ref - 1;
+    SD->events_per_type[old_event_type]--;
+ 
 
 // insert this site at end of new_event_type list
-    int new_event_ref = SD->events_per_type[new_event_type]+1;
-    SD->events_per_type[new_event_type] = new_event_ref;
-    SD->events_by_type[new_event_type*SD->nsites+new_event_ref] = i;
+    int new_event_ref = SD->events_per_type[new_event_type];
+    SD->events_per_type[new_event_type]++;
+    SD->events_by_type[new_event_type*nsites+new_event_ref] = i;
     SD->event_types[i] = new_event_type;
     SD->event_refs[i] = new_event_ref;
 
+   return 0;
 }
 
 int update_events_i( int move_site, struct SimData *SD){
@@ -130,6 +140,7 @@ int update_events_i( int move_site, struct SimData *SD){
     int new_event_type = get_event_type(i,SD);
     SD->events[i] = switch_state( state_i, model_number );
     //now change where it is in the list of events for that type
+
     change_event_type( i, old_event_type, new_event_type, SD );
 
     // now do it for neighbors this site affects
@@ -144,9 +155,8 @@ int update_events_i( int move_site, struct SimData *SD){
     return 0;
 }
 
-int update_configuration( int event_i, struct SimData *SD){
+int update_configuration( int change_idx, struct SimData *SD){
     int j,k;
-    int change_idx = SD->event_refs[event_i];
     int result = SD->events[change_idx];
     // Debug code:
     //printf("Changing spin %i to %i, which effects %i %i %i with rate %f\n",change_idx,result, SD->neighbors_update[SD->nneighbors_update_per_site*change_idx+0], SD->neighbors_update[SD->nneighbors_update_per_site*change_idx+1], SD->neighbors_update[SD->nneighbors_update_per_site*change_idx+2],SD->event_rates[change_idx]);
@@ -192,6 +202,13 @@ double sum_rates( struct SimData *SD ){
     }
     SD->total_rate = total_rate;
     SD->n_possible_events = n_possible_events;
+    // debug code
+    /*
+    for(i=0;i<SD->n_event_types;i++){
+        printf("type %i) rate: %f nevents: %i\n",i,SD->event_rates[i],SD->events_per_type[i]);
+    }
+    printf("n_possible_events: %i\n",n_possible_events);
+    */
     return total_rate;
 } 
 
@@ -225,35 +242,6 @@ int b_find_event( float searchval, struct SimData *SD){
     return idx1;
 }
 
-int run_kmc_spin_steps(int nsteps,struct SimData *SD){
-    int step = 0;
-    int return_val = 0;
-    int n_possible_events = SD->n_possible_events;
-    float t = SD->time;
-    float dt = 0;
-    for(step=0;step<nsteps;step++){
-        if(n_possible_events<1){
-            return_val = -1;
-            break;
-        }
-        float prob = get_frandom();
-        float total_rate = sum_rates(SD);
-
-        //int j;
-        //printf("prob*total_rate: %f\n",prob*total_rate);
-        //for(j=0;j<SD->n_possible_events;j++){ 
-        //    printf("%f ",SD->cumulative_rates[j]);
-        //}
-        int event_i = b_find_event( prob*total_rate, SD);
-        //printf("\nevent_i: %i\n",event_i);
-        update_configuration( event_i, SD );
-        n_possible_events = update_events_i( event_i, SD );
-        dt = -log(prob)/total_rate;
-        t += dt;
-    }
-    SD->time = t;
-    return return_val;
-}
 int copy_configuration_prev(struct SimData *SD){
     int i;
     for(i=0;i<SD->nsites;i++){ 
@@ -263,6 +251,7 @@ int copy_configuration_prev(struct SimData *SD){
 }
 
 int run_kmc_spin(float stop_time,struct SimData *SD){
+    int i;
     int step = 0;
     int n_possible_events = SD->n_possible_events;
     int return_val = 0;
@@ -282,9 +271,11 @@ int run_kmc_spin(float stop_time,struct SimData *SD){
             copy_configuration_prev(SD);
         }
 
+//        for(i=0;i<SD->n_event_types;i++) printf("%f ",SD->cumulative_rates[i]);
         int event_type_i = b_find_event( prob*total_rate, SD);
-        int rand_event = get_irandom( 0, SD->events_per_type[event_type_i] );
+        int rand_event = get_irandom( 0, SD->events_per_type[event_type_i]-1 );
         int move_site = SD->events_by_type[event_type_i*SD->nsites+rand_event];
+//        printf("\n %f %f %f %i %i %i\n",total_rate,prob,prob*total_rate,event_type_i,rand_event,move_site);
         update_configuration( move_site, SD );
         update_events_i( move_site, SD );
         step++;

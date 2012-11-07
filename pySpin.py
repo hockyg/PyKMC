@@ -71,7 +71,6 @@ def simulate(options):
             min_time = average_time_per_step
             min_time_log = int(np.ceil(np.log10(min_time)))
             max_time_log = int(np.ceil(np.log10(options.max_time)))
-            print max_time_log
             prelim_stop_times = np.logspace( min_time_log, max_time_log, num=(max_time_log-min_time_log)*options.stops_per_decade+1)
             simulation.stop_times = prelim_stop_times[prelim_stop_times<=options.max_time]
             simulation.nstages = len(simulation.stop_times)
@@ -83,8 +82,9 @@ def simulate(options):
         #p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
         
         #print "Time: %.2e"%simulation.system.time, p1, p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ),model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
-        #print "Time: %.2e"%simulation.system.time, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ),model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
-        print "Time: %.2e Energy: %f"%( simulation.system.time, simulation.system.total_energy )
+        print "Time: %.2e"%simulation.system.time, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ),model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
+#uncomment for newest
+#        print "Time: %.2e Energy: %f"%( simulation.system.time, simulation.system.total_energy )
 
         sim_timer = Timer()
         last_time = simulation.stop_times[-1]
@@ -97,11 +97,12 @@ def simulate(options):
             if options.output_prefix:
                 simulation.write_frame()
             #print "Time: %.2e"%simulation.system.time,p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
-            #print "Time: %.2e"%simulation.system.time, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
+            print "Time: %.2e"%simulation.system.time, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
             elapsed_time = sim_timer.gettime()
             time_remaining = last_time - stop_time
             est_final_sim_time = elapsed_time / ( 1 - (time_remaining)/last_time )
-            print "Time: %.2e Energy: %f SimTime: %f (etr: %f)"%( simulation.system.time, simulation.system.total_energy, elapsed_time, est_final_sim_time - elapsed_time ), c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
+#uncomment for newest
+#            print "Time: %.2e Energy: %f SimTime: %f (etr: %f)"%( simulation.system.time, simulation.system.total_energy, elapsed_time, est_final_sim_time - elapsed_time ), c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
 
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)
