@@ -65,17 +65,15 @@ int all_events( struct SimData *SD){
         SD->event_types[i] = -1;
         SD->event_refs[i] = -1;
         for(j=0;j<SD->n_event_types;j++){
-            SD->events_by_type[j*SD->nsites+i]=0;
+            SD->events_by_type[j*SD->nsites+i]=-1;
         }
     }
     for(i=0;i<SD->n_event_types;i++){
-//        SD->event_rates[i] = 0.0;
-        SD->events_per_type[i] = 0.0;
-        SD->cumulative_rates[i] = 0;
+        SD->events_per_type[i] = 0;
+        SD->cumulative_rates[i] = 0.0;
     }
 
     for(i=0;i<SD->nsites;i++){
-//        float event_rate = get_event_rate(i,SD);
         int event_type = get_event_type(i,SD);
         SD->events[i] = switch_state(SD->configuration[i],SD->model_number);
         SD->event_types[i] = event_type;
@@ -102,13 +100,32 @@ int all_events( struct SimData *SD){
     return n_possible_events;
 }
 
+
+void print_event_type( int event_type, struct SimData *SD){
+    int i;
+    printf("%i %i) ",event_type,SD->events_per_type[event_type]);
+    for(i=0;i<SD->events_per_type[event_type]+1;i++){
+        printf("%i ",SD->events_by_type[event_type*SD->nsites+i]);
+    }
+    printf("\n");
+}
+
+void print_all_event_types( struct SimData *SD ){
+    int i;
+    for(i=0;i<SD->n_event_types;i++){
+        print_event_type(i,SD);
+    }
+}
+
 int change_event_type( int i, int old_event_type, int new_event_type, struct SimData *SD){
 //first remove it from the old list (note, this hopefully should work even if last event in list)
     int nsites = SD->nsites;
     int old_final_event_ref = SD->events_per_type[old_event_type]-1;
     int old_event_ref = SD->event_refs[i];
-    // replace this event with event from end of list (may be same if this was last event)
-    SD->events_by_type[old_event_type*nsites+old_event_ref] = SD->events_by_type[old_event_type*nsites+old_final_event_ref];
+    // replace this event with event from end of list (may be same if this was last event). must also replace its event ref
+    int site_to_move = SD->events_by_type[old_event_type*nsites+old_final_event_ref];
+    SD->events_by_type[old_event_type*nsites+old_event_ref] = site_to_move;
+    SD->event_refs[site_to_move] = old_event_ref;
     // now negate final event
     SD->events_by_type[old_event_type*nsites+old_final_event_ref] = -1;
     // and decrement number of events
@@ -117,10 +134,10 @@ int change_event_type( int i, int old_event_type, int new_event_type, struct Sim
 
 // insert this site at end of new_event_type list
     int new_event_ref = SD->events_per_type[new_event_type];
-    SD->events_per_type[new_event_type]++;
     SD->events_by_type[new_event_type*nsites+new_event_ref] = i;
     SD->event_types[i] = new_event_type;
     SD->event_refs[i] = new_event_ref;
+    SD->events_per_type[new_event_type]++;
 
    return 0;
 }
@@ -141,7 +158,9 @@ int update_events_i( int move_site, struct SimData *SD){
     SD->events[i] = switch_state( state_i, model_number );
     //now change where it is in the list of events for that type
 
+    //print_all_event_types(SD);
     change_event_type( i, old_event_type, new_event_type, SD );
+    //print_all_event_types(SD);
 
     // now do it for neighbors this site affects
     for(j=0;j<nneighbors_update_per_site;j++){
@@ -150,7 +169,10 @@ int update_events_i( int move_site, struct SimData *SD){
         old_event_type = SD->event_types[i];
         new_event_type = get_event_type(i,SD);
         SD->events[i] = switch_state( state_i, model_number );
+    // printf("Changing site %i (neighbor of %i) from type %i to %i\n",i,move_site,old_event_type,new_event_type);
+    //print_all_event_types(SD);
         change_event_type( i, old_event_type, new_event_type, SD );
+    //print_all_event_types(SD);
     }
     return 0;
 }
