@@ -11,6 +11,20 @@ class CubeClass(object):
     def __init__(self, int side_length ):
         self.side_length = side_length
         self.nsites = side_length*side_length*side_length
+        self.n_event_types = 8
+
+    def EventRates(self,double temp):
+        cdef int i,j
+        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_float)
+        cdef np.ndarray constraints = np.array( np.arange(0.,3.,1), dtype=ct.c_float) # 0,1,2,4 # number of affecting neighbors
+        cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_float) # 0 and 1
+        cdef float excitations_created
+        for i in range(2):
+            constraint = constraints[i]
+            for j in range(2):
+                spin_state = spin_states[j]
+                event_rates[2*constraint+spin_state] = (1-spin_state)*constraint*np.exp(-1/temp) + spin_state*constraint
+        return event_rates
 
     def Neighbors(self):
         """ Calculates all neighbors for all sites """
@@ -53,6 +67,20 @@ class SquareClass(object):
     def __init__(self, int side_length ):
         self.side_length = side_length
         self.nsites = side_length*side_length
+        self.n_event_types = 6
+
+    def EventRates(self,double temp):
+        cdef int i,j
+        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_float)
+        cdef np.ndarray constraints = np.array( np.arange(0.,3.,1), dtype=ct.c_float) # 0,1,2 # number of affecting neighbors
+        cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_float) # 0 and 1
+        cdef float excitations_created
+        for i in range(2):
+            constraint = constraints[i]
+            for j in range(2):
+                spin_state = spin_states[j]
+                event_rates[2*constraint+spin_state] = (1-spin_state)*constraint*np.exp(-1/temp) + spin_state*constraint
+        return event_rates
 
     def Neighbors(self):
         """ Calculates all neighbors for all sites """
