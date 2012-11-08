@@ -154,11 +154,11 @@ class Simulation(object):
         pickle.dump(self.system, self.trj_file )
 
     def setup_output_files(self,mode="w",compresslevel=3):
-        if self.final_options.trj_time > 0:
+        if self.final_options.write_trj > 0:
             self.trj_file_name = self.final_options.output_prefix+'.spintrj.gz'
             self.trj_file = gzip.open(self.trj_file_name,mode+'b',compresslevel)
-        if self.final_options.restart_time > 0:
-            self.restart_file_name = self.final_options.output_prefix+'.spinrestart.gz'
+#        if self.final_options.restart_time > 0:
+#            self.restart_file_name = self.final_options.output_prefix+'.spinrestart.gz'
 
     def setup_steps_to_take(self):
         pass

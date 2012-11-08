@@ -76,7 +76,7 @@ def simulate(options):
             simulation.nstages = len(simulation.stop_times)
           
         # before starting, write initial frame
-        if options.output_prefix:
+        if options.output_prefix and options.write_trj:
             simulation.write_frame()
 
         #p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
@@ -93,8 +93,8 @@ def simulate(options):
             if return_val == -1: 
                 print "No more possible moves"
                 break
-            p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
-            if options.output_prefix:
+            #p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
+            if options.output_prefix and options.write_trj:
                 simulation.write_frame()
             #print "Time: %.2e"%simulation.system.time,p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
 #            print "Time: %.2e"%simulation.system.time, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
@@ -102,7 +102,7 @@ def simulate(options):
             time_remaining = last_time - stop_time
             est_final_sim_time = elapsed_time / ( 1 - (time_remaining)/last_time )
 #uncomment for newest
-            print "Time: %.2e Energy: %f SimTime: %f (etr: %f)"%( simulation.system.time, simulation.system.total_energy, elapsed_time, est_final_sim_time - elapsed_time ), c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), p1,p2
+            print "Time: %.2e Energy: %f SimTime: %f (etr: %f)"%( simulation.system.time, simulation.system.total_energy, elapsed_time, est_final_sim_time - elapsed_time ), c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
 
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)
@@ -137,7 +137,7 @@ def main():
     write_group.add_option("--linear_time",help="Save information on a linear time scale (default: logarithmic)",default=False,action="store_true")
     write_group.add_option("--info_time",default=-1,type=float,help="Set how often simulation info and configurations are written for linear time (default:none)")
     write_group.add_option("--stops_per_decade",default=10,type=int,help="For logarithmic writing. Set how many times to write per decade of simulation time (default:none)")
-    write_group.add_option("--write_trj",default=False,action="store_true",help="Specify whether or not to write a trajectory (default:none)")
+    write_group.add_option("--write_trj",default=False,action="store_true",help="Specify whether or not to write a trajectory (default:False)")
 
     parser.add_option_group(write_group)
     options, args = parser.parse_args()
