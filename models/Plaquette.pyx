@@ -14,6 +14,125 @@ import ctypes as ct
 changes_per_step = 1
 model_name = "Plaquette"
 
+cdef gen_pascal_parity( np.ndarray[np.int_t,ndim=2] pascal_parity, int linear_size ):
+    cdef int i,j
+    for i in range(1,linear_size):
+        for j in range(0,linear_size-2*i):
+            pascal_parity[i,i+j] = (pascal_parity[i-1,i+j]+pascal_parity[i,i+j-1])%2
+            pascal_parity[i+j,i] = (pascal_parity[i+j-1,i]+pascal_parity[i+j,i-1])%2
+
+def pascal_parity_f(row, col):
+    """get the parity of a pascal triangle entry using lucas's theorem.
+       a corrolary of this theorem is that (m,n) is divisble by 2 
+         iff 1 digit in base 2 of n is greater than that digit of m"""
+    #note, row should always be larger than col
+    row2 = np.binary_repr(row)
+    col2 = np.binary_repr(col,len(row2))
+    for i in range(len(row2)):
+        if col2[i]>row2[i]:
+            return 0
+    return 1
+
+class TriangleClass(object):
+    def __init__(self, int side_length ):
+        self.side_length = side_length
+        self.nsites = side_length*side_length
+        self.n_event_types = 4
+
+    def EventRates(self,double temp):
+        cdef int i
+        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_float)
+        # can create or distroy one excitation with a single spin flip
+        cdef np.ndarray excitations_created_array = np.array( np.arange(-3.,4.,2), dtype=ct.c_float)
+        cdef float excitations_created
+        for i in range(self.n_event_types):
+            excitations_created = excitations_created_array[i];
+            event_rates[i] = (excitations_created>0)*np.exp(-excitations_created/temp) + (excitations_created<=0);
+        return event_rates
+
+    def Neighbors(self):
+        """ Calculates all neighbors for all sites """
+        cdef int nsites = self.nsites
+        cdef int nneighbors_per_site = 2
+        cdef int nneighbors_update_per_site = 4
+        cdef int site_idx, j
+        cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_update_per_site),dtype=ct.c_int)
+        for site_idx in range(nsites):
+            neighbors_i, neighbors_i_update = self.NeighborsI(site_idx)
+            for j in range(nneighbors_per_site):
+                neighbors[site_idx,j] = neighbors_i[j]
+            for j in range(nneighbors_update_per_site):
+                neighbors_update[site_idx,j] = neighbors_i_update[j]
+        return nneighbors_per_site, nneighbors_update_per_site, neighbors, neighbors_update
+   
+    def NeighborsI( self, int site_idx ):
+        """ Returns the neighbors of lattice site site_idx """
+        # first find x and y position
+        cdef int col_num = site_idx%self.side_length
+        cdef int row_num = (site_idx-col_num)/self.side_length
+        
+        cdef int f_column = (col_num+1)%self.side_length
+        cdef int b_column = (col_num-1)%self.side_length
+        cdef int u_row = (row_num-1)%(self.side_length)
+        cdef int d_row = (row_num+1)%(self.side_length)
+
+        # first neighbors, then neighbors to update
+        # first 3 of neighbor update have this site in their plaquette
+        return [ 
+                 self.row_col_to_idx(d_row,col_num),
+                 self.row_col_to_idx(d_row,f_column) ], \
+               [ 
+                 self.row_col_to_idx(u_row,col_num), 
+                 self.row_col_to_idx(u_row,b_column), 
+                 self.row_col_to_idx(d_row,col_num), 
+                 self.row_col_to_idx(d_row,f_column),  ],
+
+    def row_col_to_idx(self, int row, int col):
+        return row*self.side_length+col
+
+    def introduce_defect( self, row, col, configuration, pascal_parity ):
+        cdef int linear_size = self.side_length
+        cdef int i,j
+        for i in range(linear_size):
+                # i.e., if i Choose j is odd, flip spin
+#            for j in range(i+1):
+#                if( pascal_parity_f(i,j) > 0 ): # this also works, slower
+#                    configuration[(row-i)%linear_size,(col-j)%linear_size]*=-1
+            for j in range(i+1):
+                if( pascal_parity[i-j,j] > 0 ):
+                    configuration[(row-i)%linear_size,(col-j)%linear_size]*=-1
+
+    def RandomConfiguration( self, double temperature ):
+        """ Generates a random configuration commensurate with the temperature
+           
+        """
+        import sys
+        cdef int i,j,k,l
+        cdef int d_idx, r_idx, dr_value, pij
+        cdef int side_length = self.side_length
+        cdef int half_side_length = side_length/2
+
+        cdef float size_log2 = np.log(self.side_length)/np.log(2)
+        if  (size_log2 - np.floor(size_log2))>0:
+            print "Side length must be a power of 2 to generate a random triangular plaquette configuration"
+            sys.exit(1)
+
+        cdef np.ndarray[np.int_t,ndim=2] dual_configuration = RandomConfigurationIdeal( self.nsites, temperature ).reshape((side_length,side_length))
+        # note, start all spin up
+        cdef np.ndarray[np.int_t,ndim=2] configuration = np.ones((side_length,side_length),dtype=ct.c_int)
+        cdef np.ndarray[np.int_t,ndim=2] pascal_parity = np.zeros((side_length,side_length),dtype=ct.c_int)
+
+        gen_pascal_parity(pascal_parity, side_length)
+
+        for i in range(side_length):
+            for j in range(side_length):
+                #if dual_configuration[i,j]>0: self.introduce_defect( i, j, configuration )
+                if dual_configuration[i,j]>0: self.introduce_defect( i, j, configuration, pascal_parity )
+
+        return configuration.flatten(), dual_configuration.flatten()
+
+
 class SquareClass(object):
     def __init__(self, int side_length ):
         self.side_length = side_length
@@ -126,9 +245,10 @@ class SquareClass(object):
         return configuration.flatten(), dual_configuration.flatten()
 
            
-LatticeRegistry = {"square":SquareClass}
+LatticeRegistry = {"square":SquareClass, 
+                   "triangle":TriangleClass}
 
-def SquareEnergy(np.ndarray[np.int_t,ndim=1] configuration,np.ndarray[np.int_t,ndim=2] neighbors, int nsites, int nneighbors_per_site):
+def PlaquetteEnergy(np.ndarray[np.int_t,ndim=1] configuration,np.ndarray[np.int_t,ndim=2] neighbors, int nsites, int nneighbors_per_site):
     cdef int i,j
     cdef int spin_prod
     cdef double site_e, total_e

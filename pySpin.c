@@ -34,8 +34,8 @@ int get_event_type(int site_idx, struct SimData *SD){
         //metropolis rate
         //event_rate = (excitations_created>0)*pow(SD->betaexp,excitations_created) + (excitations_created<=0); // if n plaquettes are excited, rate is exp(-n * beta). otherwise rate 1 (decreases energy or keeps same)
 
-//WARNING, next is for square plaquette only. need to generalize
-        event_type = excitations_created/2+2;
+//WARNING, next works for square and triangular plaquette model. would need to check for future plaquette interactions, if any
+        event_type = (excitations_created+SD->n_event_types-1)/2;
     }
     else{
        printf("pySpin.c: Model number not yet supported by get_event_type\n");

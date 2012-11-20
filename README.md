@@ -11,6 +11,11 @@ Authors
 -------
 Glen Hocky
 
+Quick Instructions
+------------------
+To build:
+    python setup.py build_ext -i
+
 Contents
 -----------
 * README.md
@@ -22,12 +27,14 @@ Contents
         trajectories
 * lattice/
 
-    This should contain lattice definitions and tools for determining neighbor
-        sites on that lattice
+    This contained lattice definitions and tools for determining neighbor
+        sites on that lattice. Will be removed as functionality has migrated
+        to models/
 * models/
 
     This should contain rules for the dynamics, and code that builds the list
         of potential moves for the current configuration
+    This now contains lattice definitions and tools for determining neighbors
 * tests/
 
     This should contain scripts that run the code in known configurations to 

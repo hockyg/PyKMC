@@ -261,7 +261,7 @@ class SimData(ct.Structure):
                 ("prev_configuration",c_void_p),
                 ("dual_configuration",c_void_p),
         # rate stuff
-                ("total_rate",c_float),
+                ("total_rate",c_double),
                 ("n_event_types",c_int),
                 ("events",c_void_p),
                 ("event_types",c_void_p),
