@@ -41,9 +41,9 @@ class TriangleClass(object):
 
     def EventRates(self,double temp):
         cdef int i
-        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_float)
+        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
         # can create or distroy one excitation with a single spin flip
-        cdef np.ndarray excitations_created_array = np.array( np.arange(-3.,4.,2), dtype=ct.c_float)
+        cdef np.ndarray excitations_created_array = np.array( np.arange(-3.,4.,2), dtype=ct.c_double)
         cdef float excitations_created
         for i in range(self.n_event_types):
             excitations_created = excitations_created_array[i];
@@ -141,8 +141,8 @@ class SquareClass(object):
 
     def EventRates(self,double temp):
         cdef int i
-        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_float)
-        cdef np.ndarray excitations_created_array = np.array( np.arange(-4.,5.,2), dtype=ct.c_float)
+        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
+        cdef np.ndarray excitations_created_array = np.array( np.arange(-4.,5.,2), dtype=ct.c_double)
         cdef float excitations_created
         for i in range(5):
             excitations_created = excitations_created_array[i];
@@ -269,9 +269,9 @@ def InitializeArrays( int nsites, int n_event_types ):
     cdef np.ndarray events_by_type = np.zeros((n_event_types,nsites),dtype=ct.c_int)
     cdef np.ndarray events_per_type = np.zeros(n_event_types,dtype=ct.c_int)
     cdef np.ndarray event_refs = -1*np.ones(nsites,dtype=ct.c_int)
-    cdef np.ndarray event_rates = np.zeros(n_event_types,dtype=ct.c_float)
-#    cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=ct.c_float)
-    cdef np.ndarray cumulative_rates = np.zeros(n_event_types,dtype=ct.c_float)
+    cdef np.ndarray event_rates = np.zeros(n_event_types,dtype=ct.c_double)
+#    cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=ct.c_double)
+    cdef np.ndarray cumulative_rates = np.zeros(n_event_types,dtype=ct.c_double)
     cdef np.ndarray persistence_array= np.ones(nsites,dtype=ct.c_int)
     return {"events": events,
             "event_types": event_types,

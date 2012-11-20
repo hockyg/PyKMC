@@ -130,7 +130,7 @@ class Simulation(object):
         self.system.dual_configuration = self.dual_configuration
 
         sys_arrays = ModelRegistry[self.model_name].InitializeArrays( self.nsites, self.n_event_types )
-        sys_arrays["event_rates"] = np.array( event_rates, dtype=c_float )
+        sys_arrays["event_rates"] = np.array( event_rates, dtype=c_double )
         for key in sys_arrays.keys():
             setattr( self.system, key, sys_arrays[key] )
 

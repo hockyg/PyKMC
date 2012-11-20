@@ -15,9 +15,9 @@ class CubeClass(object):
 
     def EventRates(self,double temp):
         cdef int i,j
-        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_float)
-        cdef np.ndarray constraints = np.array( np.arange(0.,3.,1), dtype=ct.c_float) # 0,1,2,4 # number of affecting neighbors
-        cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_float) # 0 and 1
+        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
+        cdef np.ndarray constraints = np.array( np.arange(0.,3.,1), dtype=ct.c_double) # 0,1,2,4 # number of affecting neighbors
+        cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_double) # 0 and 1
         cdef float excitations_created
         for i in range(2):
             constraint = constraints[i]
@@ -71,9 +71,9 @@ class SquareClass(object):
 
     def EventRates(self,double temp):
         cdef int i,j
-        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_float)
-        cdef np.ndarray constraints = np.array( np.arange(0.,3.,1), dtype=ct.c_float) # 0,1,2 # number of affecting neighbors
-        cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_float) # 0 and 1
+        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
+        cdef np.ndarray constraints = np.array( np.arange(0.,3.,1), dtype=ct.c_double) # 0,1,2 # number of affecting neighbors
+        cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_double) # 0 and 1
         cdef float excitations_created
         for i in range(2):
             constraint = constraints[i]
@@ -124,9 +124,9 @@ class LinearClass(object):
 
     def EventRates(self,double temp):
         cdef int i,j
-        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_float)
-        cdef np.ndarray constraints = np.array( np.arange(0.,2.,1), dtype=ct.c_float) # 0 and 1
-        cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_float) # 0 and 1
+        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
+        cdef np.ndarray constraints = np.array( np.arange(0.,2.,1), dtype=ct.c_double) # 0 and 1
+        cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_double) # 0 and 1
         cdef float excitations_created
         for i in range(2):
             constraint = constraints[i]
@@ -174,9 +174,9 @@ def InitializeArrays( int nsites, int n_event_types):
     cdef np.ndarray events_by_type = np.zeros((n_event_types,nsites),dtype=ct.c_int)
     cdef np.ndarray events_per_type = np.zeros(n_event_types,dtype=ct.c_int)
     cdef np.ndarray event_refs = -1*np.ones(nsites,dtype=ct.c_int)
-    cdef np.ndarray event_rates = np.zeros(n_event_types,dtype=ct.c_float)
-#    cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=ct.c_float)
-    cdef np.ndarray cumulative_rates = np.zeros(n_event_types,dtype=ct.c_float)
+    cdef np.ndarray event_rates = np.zeros(n_event_types,dtype=ct.c_double)
+#    cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=ct.c_double)
+    cdef np.ndarray cumulative_rates = np.zeros(n_event_types,dtype=ct.c_double)
     cdef np.ndarray persistence_array= np.ones(nsites,dtype=ct.c_int)
     return {"events": events,
             "event_types": event_types,

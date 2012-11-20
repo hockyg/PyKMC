@@ -125,10 +125,10 @@ LatticeRegistry = {"linear":LinearClass, "square":SquareClass, "cube":CubeClass 
 
 def InitializeArrays( int nsites ):
     cdef np.ndarray events = np.zeros(nsites,dtype=ct.c_int)
-    cdef np.ndarray event_rates = np.zeros(nsites,dtype=ct.c_float)
+    cdef np.ndarray event_rates = np.zeros(nsites,dtype=ct.c_double)
     cdef np.ndarray event_refs = -1*np.ones(nsites,dtype=ct.c_int)
-    cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=ct.c_float)
-    cdef np.ndarray cumulative_rates = np.zeros(nsites,dtype=ct.c_float)
+    cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=ct.c_double)
+    cdef np.ndarray cumulative_rates = np.zeros(nsites,dtype=ct.c_double)
     cdef np.ndarray persistence_array= np.ones(nsites,dtype=ct.c_int)
     return {"events": events,
             "event_rates": event_rates, 

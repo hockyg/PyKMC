@@ -24,16 +24,16 @@ struct SimData{
     int *prev_configuration;
     int *dual_configuration;
     // rate stuff
-    float total_rate;
+    double total_rate;
     int n_event_types;
     int *events;        
     int *event_types;
     int *events_by_type;
     int *events_per_type;
     int *event_refs;
-    float *event_rates;
+    double *event_rates;
 //    float *event_ref_rates;
-    float *cumulative_rates;
+    double *cumulative_rates;
     // calculation stuff
     int *persistence_array;
 };
