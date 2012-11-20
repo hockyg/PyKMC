@@ -21,6 +21,17 @@ cdef gen_pascal_parity( np.ndarray[np.int_t,ndim=2] pascal_parity, int linear_si
             pascal_parity[i,i+j] = (pascal_parity[i-1,i+j]+pascal_parity[i,i+j-1])%2
             pascal_parity[i+j,i] = (pascal_parity[i+j-1,i]+pascal_parity[i+j,i-1])%2
 
+def test_dual( configuration, linear_size ):
+    cdef int i,j
+    cdef np.ndarray dual_configuration = np.zeros(configuration.shape,dtype=ct.c_int)
+    for i in range(linear_size):
+        for j in range(linear_size):
+            spinij = configuration[i,j]
+            spinip1j = configuration[(i+1)%linear_size,j]
+            spinip1jp1 = configuration[(i+1)%linear_size,(j+1)%linear_size]
+            dual_configuration[i,j] = ( 1-spinij*spinip1j*spinip1jp1 )/2
+    return dual_configuration
+
 def pascal_parity_f(row, col):
     """get the parity of a pascal triangle entry using lucas's theorem.
        a corrolary of this theorem is that (m,n) is divisble by 2 
@@ -91,16 +102,15 @@ class TriangleClass(object):
     def row_col_to_idx(self, int row, int col):
         return row*self.side_length+col
 
-    def introduce_defect( self, row, col, configuration, pascal_parity ):
+    def introduce_defect( self, row, col, configuration ):
         cdef int linear_size = self.side_length
         cdef int i,j
+        # note, one 2x speedup could come from realizing that pascal parity is 2 fold symmetric
+        #    and filling in configuration from two sides
         for i in range(linear_size):
-                # i.e., if i Choose j is odd, flip spin
-#            for j in range(i+1):
-#                if( pascal_parity_f(i,j) > 0 ): # this also works, slower
-#                    configuration[(row-i)%linear_size,(col-j)%linear_size]*=-1
             for j in range(i+1):
-                if( pascal_parity[i-j,j] > 0 ):
+                # i.e., if i Choose j is odd, flip spin
+                if( pascal_parity_f(i,j) > 0 ):
                     configuration[(row-i)%linear_size,(col-j)%linear_size]*=-1
 
     def RandomConfiguration( self, double temperature ):
@@ -121,15 +131,13 @@ class TriangleClass(object):
         cdef np.ndarray[np.int_t,ndim=2] dual_configuration = RandomConfigurationIdeal( self.nsites, temperature ).reshape((side_length,side_length))
         # note, start all spin up
         cdef np.ndarray[np.int_t,ndim=2] configuration = np.ones((side_length,side_length),dtype=ct.c_int)
-        cdef np.ndarray[np.int_t,ndim=2] pascal_parity = np.zeros((side_length,side_length),dtype=ct.c_int)
-
-        gen_pascal_parity(pascal_parity, side_length)
 
         for i in range(side_length):
             for j in range(side_length):
-                #if dual_configuration[i,j]>0: self.introduce_defect( i, j, configuration )
-                if dual_configuration[i,j]>0: self.introduce_defect( i, j, configuration, pascal_parity )
+                if dual_configuration[i,j]>0: self.introduce_defect( i, j, configuration )
 
+        #tmp_dual = test_dual(configuration,side_length)
+        #print ( dual_configuration-tmp_dual ).sum()
         return configuration.flatten(), dual_configuration.flatten()
 
 
