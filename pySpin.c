@@ -297,7 +297,8 @@ int run_kmc_spin(float stop_time,struct SimData *SD){
             break;
         }
 
-        double prob = get_prob();
+        //double prob = get_prob();
+        double prob = get_frandom_2();
         float total_rate = sum_rates(SD);
         dt = -log(prob)/total_rate;
         t += dt;

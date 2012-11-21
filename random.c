@@ -139,6 +139,12 @@ uint32_t get_random_bits()
     return y;
 }
 
+double get_frandom_2() 
+{
+    // Multiply by 2^(-32)
+    return (double)get_random_bits() * INVMAXINT + DOUBLESHIFT;
+}
+
 double get_frandom() 
 {
     // Multiply by 2^(-32)

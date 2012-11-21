@@ -44,6 +44,10 @@
 #ifndef __RANDOM_H__
 #define __RANDOM_H__
 
+#define MAXINT 4294967296 // 65536*65536 = 2^32
+#define INVMAXINT 0.00000000023283064365386962890625 // 2^-32
+#define DOUBLESHIFT 0.000000000116415321826934814453125 // 2^-33
+
 // Define integer types with known size: int32_t, uint32_t, int64_t, uint64_t.
 // If this doesn't work then insert compiler-specific definitions here:
 #if defined(__GNUC__)
@@ -128,6 +132,12 @@ uint32_t get_random_bits();
  * Generates random float number in the interval 0 <= x < 1
  */
 double get_frandom();
+
+/**
+ * Generates random double number in the interval 0 < x < 1
+ *  by shifting value from get_frandom by 2^-33
+ */
+double get_frandom_2();
 
 /**
  * Generates random integer in the interval min <= x <= max
