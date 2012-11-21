@@ -289,9 +289,13 @@ int run_kmc_spin(float stop_time,struct SimData *SD){
     SD->current_step = 0;
     int n_possible_events = SD->n_possible_events;
     int return_val = 0;
-    float t = SD->time;
+
+    
+    float elapsed_time = 0;
+    float max_time = stop_time - SD->time;
     float dt = 0;
-    while(t<stop_time){
+
+    while(elapsed_time<max_time){
         if(n_possible_events<1){
             return_val = -1;
             break;
@@ -301,8 +305,8 @@ int run_kmc_spin(float stop_time,struct SimData *SD){
         double prob = get_frandom_2();
         float total_rate = sum_rates(SD);
         dt = -log(prob)/total_rate;
-        t += dt;
-        if(t >= stop_time ){
+        elapsed_time += dt;
+        if(elapsed_time >= max_time ){
             copy_configuration_prev(SD);
         }
 
@@ -315,7 +319,7 @@ int run_kmc_spin(float stop_time,struct SimData *SD){
         update_events_i( move_site, SD );
         step++;
     }
-    SD->time = t;
+    SD->time += elapsed_time;
     SD->current_step = step;
     return return_val;
 }
