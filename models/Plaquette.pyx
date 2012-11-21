@@ -32,7 +32,30 @@ def test_dual( configuration, linear_size ):
             dual_configuration[i,j] = ( 1-spinij*spinip1j*spinip1jp1 )/2
     return dual_configuration
 
-def pascal_parity_f(row, col):
+cdef pascal_parity_f(int row, int col):
+    """get the parity of a pascal triangle entry using lucas's theorem.
+       a corrolary of this theorem is that (m,n) is divisble by 2 
+         iff 1 digit in base 2 of n is greater than that digit of m"""
+    #note, row should always be larger than col
+    cdef int digit_m, digit_n
+    cdef int tmp_m = row
+    cdef int tmp_n = col
+
+    # next while loop generates reverse binary representation of number
+    while( tmp_m >1 and tmp_n > 1):
+        digit_m = tmp_m%2
+        digit_n = tmp_n%2
+        if (digit_n > digit_m ):
+            return 0
+        tmp_m = tmp_m//2
+        tmp_n = tmp_n//2
+
+    if ( tmp_n%2 > tmp_m%2 ):
+        return 0
+
+    return 1
+
+def pascal_parity_f_slow(row, col):
     """get the parity of a pascal triangle entry using lucas's theorem.
        a corrolary of this theorem is that (m,n) is divisble by 2 
          iff 1 digit in base 2 of n is greater than that digit of m"""
