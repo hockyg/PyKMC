@@ -217,7 +217,7 @@ double sum_rates( struct SimData *SD ){
     }
 
     for(i=1;i<SD->n_event_types;i++){
-        float rate_type_i = SD->events_per_type[i]*SD->event_rates[i];
+        double rate_type_i = SD->events_per_type[i]*SD->event_rates[i];
         total_rate = total_rate + rate_type_i;
         SD->cumulative_rates[i] = SD->cumulative_rates[i-1] + rate_type_i;
         n_possible_events += SD->events_per_type[i];
@@ -252,7 +252,7 @@ int b_find_event( float searchval, struct SimData *SD){
     }
     while ( (idx1-idx0) > 1 ){
         int halfidx = (idx1+idx0)/2;
-        float half_prob = SD->cumulative_rates[halfidx];
+        double half_prob = SD->cumulative_rates[halfidx];
         if ( half_prob > searchval ){
             idx1 = halfidx;
         }
@@ -274,9 +274,19 @@ int copy_configuration_prev(struct SimData *SD){
     return 0;
 }
 
+//This function supplements the get_frandom function which returns a number in 0<=x<1, which is a problem in extremely rare but actually occuring cases when the random number appears as 0 and we then take its logarithm
+double get_prob(){
+    double prob = get_frandom();
+    while(prob==0){
+        prob = get_frandom();
+    }
+    return prob;
+}
+
 int run_kmc_spin(float stop_time,struct SimData *SD){
     int i;
     int step = 0;
+    SD->current_step = 0;
     int n_possible_events = SD->n_possible_events;
     int return_val = 0;
     float t = SD->time;
@@ -287,7 +297,7 @@ int run_kmc_spin(float stop_time,struct SimData *SD){
             break;
         }
 
-        float prob = get_frandom();
+        double prob = get_prob();
         float total_rate = sum_rates(SD);
         dt = -log(prob)/total_rate;
         t += dt;
@@ -305,6 +315,7 @@ int run_kmc_spin(float stop_time,struct SimData *SD){
         step++;
     }
     SD->time = t;
+    SD->current_step = step;
     return return_val;
 }
 
