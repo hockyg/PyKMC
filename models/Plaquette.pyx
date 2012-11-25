@@ -253,11 +253,11 @@ class SquareClass(object):
         cdef np.ndarray[np.int_t,ndim=1] rand_spins
 
         # first fill in top row
-        rand_spins = 2*np.random.randint(2,size=side_length)-1
+        rand_spins = np.array( 2*np.random.randint(2,size=side_length)-1, dtype=ct.c_int )
         for i in range(side_length):
             configuration[0,i] = rand_spins[i]
         # then fill in first column
-        rand_spins = 2*np.random.randint(2,size=side_length)-1
+        rand_spins = np.array( 2*np.random.randint(2,size=side_length)-1, dtype=ct.c_int )
         for i in range(side_length):
             configuration[i,0] = rand_spins[i]
 

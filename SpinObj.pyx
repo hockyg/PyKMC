@@ -27,6 +27,7 @@ has_dual = ["Plaquette"]
 
 #definitions
 c_int = ct.c_int
+c_long = ct.c_long
 c_double = ct.c_double
 c_float = ct.c_float
 c_double_p = ct.c_double
@@ -250,13 +251,13 @@ class SimData(ct.Structure):
                 ("neighbors_update",c_void_p),
         # simulation stuff
                 ("model_number",c_int),
-                ("current_step",c_int),
+                ("current_step",c_long),
                 ("n_possible_events",c_int),
                 ("seed",c_int),
                 ("temp",c_double),
                 ("betaexp",c_double), 
                 ("total_energy",c_double), 
-                ("time",c_float), 
+                ("time",c_double), 
                 ("configuration",c_void_p),
                 ("prev_configuration",c_void_p),
                 ("dual_configuration",c_void_p),

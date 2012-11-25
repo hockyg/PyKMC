@@ -12,7 +12,7 @@ int get_event_type(int site_idx, struct SimData *SD){
     int nneighbors_per_site = SD->nneighbors_per_site;
     //float event_rate = 0.0;
     if(SD->model_number < 2){ // FA or East
-        float constraint = 0.0;
+        double constraint = 0.0;
         int state_i = SD->configuration[site_idx];
         //note this depends on the lattice being properly declared such that 
         //  all neighbors are those that actually affect the given spin
@@ -237,7 +237,7 @@ double sum_rates( struct SimData *SD ){
 } 
 
 //binary search through cumulative event probabilities
-int b_find_event( float searchval, struct SimData *SD){
+int b_find_event( double searchval, struct SimData *SD){
     int final_event = SD->n_event_types - 1;
     int idx0 = 0;
     int idx1 = final_event;
@@ -271,6 +271,8 @@ int copy_configuration_prev(struct SimData *SD){
     for(i=0;i<SD->nsites;i++){ 
         SD->prev_configuration[i] = SD->configuration[i];
     }
+    //Note: memcopy solution like below possible but found to be a bit slower (not tested fully for correctness)
+    //memcpy( SD->prev_configuration, SD->configuration, SD->nsites*sizeof(int) );
     return 0;
 }
 
@@ -283,17 +285,16 @@ double get_prob(){
     return prob;
 }
 
-int run_kmc_spin(float stop_time,struct SimData *SD){
+int run_kmc_spin(double stop_time,struct SimData *SD){
     int i;
-    int step = 0;
+    long step = 0;
     SD->current_step = 0;
     int n_possible_events = SD->n_possible_events;
     int return_val = 0;
 
-    
-    float elapsed_time = 0;
-    float max_time = stop_time - SD->time;
-    float dt = 0;
+    double elapsed_time = 0;
+    double max_time = stop_time - SD->time;
+    double dt = 0;
 
     while(elapsed_time<max_time){
         if(n_possible_events<1){
@@ -303,7 +304,7 @@ int run_kmc_spin(float stop_time,struct SimData *SD){
 
         //double prob = get_prob();
         double prob = get_frandom_2();
-        float total_rate = sum_rates(SD);
+        double total_rate = sum_rates(SD);
         dt = -log(prob)/total_rate;
         elapsed_time += dt;
         if(elapsed_time >= max_time ){
@@ -320,6 +321,7 @@ int run_kmc_spin(float stop_time,struct SimData *SD){
         step++;
     }
     SD->time += elapsed_time;
+    //printf("Avg dt: %f. Actual increasted time %f\n",(double)elapsed_time/step,elapsed_time);
     SD->current_step = step;
     return return_val;
 }

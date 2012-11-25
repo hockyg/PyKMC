@@ -13,13 +13,13 @@ struct SimData{
     int *neighbors_update;
     //simulation stuff
     int model_number;
-    int current_step;
+    long current_step;
     int n_possible_events;
     int seed;
     double temp;
     double betaexp;
     double total_energy;
-    float time;
+    double time;
     int *configuration;
     int *prev_configuration;
     int *dual_configuration;
