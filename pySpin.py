@@ -64,6 +64,8 @@ def simulate(options):
         # now set up desired write out times
         if options.linear_time:
             simulation.stop_times = np.array(np.arange(options.info_time,options.max_time+options.info_time,options.info_time),dtype=c_float)
+            if simulation.stop_times[-1] > options.max_time:
+                simulation.stop_times[-1] = options.max_time
             simulation.nstages = len(simulation.stop_times)
             
             pass
@@ -89,6 +91,7 @@ def simulate(options):
         sim_timer = Timer()
         prev_time = sim_timer.gettime()
         prev_stop_time = 0
+        total_steps=0L
         last_time = simulation.stop_times[-1]
         for frame_idx,stop_time in enumerate(simulation.stop_times):
             return_val = C.run_kmc_spin(stop_time, simulation.system.SD)
@@ -109,13 +112,16 @@ def simulate(options):
             stage_elapsed_time = sim_timer.gettime()-prev_time
             wall_time_per_sim_time = stage_elapsed_time / ( stop_time - prev_stop_time )
             wall_time_remaining = time_remaining * wall_time_per_sim_time
+            total_steps = total_steps+simulation.system.SD.current_step
+            efficiency = simulation.system.SD.current_step/stage_elapsed_time
+            print total_steps,simulation.system.SD.current_step
 
             #this should be last major thing in loop
             prev_time = sim_timer.gettime()
             prev_stop_time = stop_time
 
 #uncomment for newest
-            print "Time: %.2e Energy: %f SimTime: %f (etr: %f)"%( simulation.system.time, simulation.system.total_energy, elapsed_time, wall_time_remaining ), c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
+            print "Time: %.2e Energy: %f SimTime: %f (etr: %f) Eff: %3.2e"%( simulation.system.time, simulation.system.total_energy, elapsed_time, wall_time_remaining, efficiency ), c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
 
 
         print >>verbose_out, "Simulation Finished!"
