@@ -27,7 +27,7 @@ int get_event_type(int site_idx, struct SimData *SD){
         int excitations_created = 0;
         excitations_created += ( 1-2*SD->dual_configuration[site_idx] ); // changes 0 -> 1 and 1-> -1
         // note, on the next line it is just the first nneighbors_per_site out of the neighbors_update list which have this spin in their plaquette. e.g. 3 more spins out of eight neighbors for square plaquette
-        for(j=0;j<nneighbors_per_site;j++){
+        for(j=0;j<SD->nneighbors_update_per_site;j++){
             int neighbor_site = SD->neighbors_update[SD->nneighbors_update_per_site*site_idx+j];
             excitations_created += ( 1 - 2*SD->dual_configuration[neighbor_site] );
         }
@@ -162,6 +162,16 @@ int update_events_i( int move_site, struct SimData *SD){
     change_event_type( i, old_event_type, new_event_type, SD );
     //print_all_event_types(SD);
 
+    // now do it for neighbors of this site
+    for(j=0;j<SD->nneighbors_per_site;j++){
+        i = SD->neighbors[SD->nneighbors_per_site*move_site+j];
+        state_i = SD->configuration[i];
+        old_event_type = SD->event_types[i];
+        new_event_type = get_event_type(i,SD);
+        SD->events[i] = switch_state( state_i, model_number );
+        change_event_type( i, old_event_type, new_event_type, SD );
+    }
+
     // now do it for neighbors this site affects
     for(j=0;j<nneighbors_update_per_site;j++){
         i = SD->neighbors_update[nneighbors_update_per_site*move_site+j];
@@ -192,6 +202,9 @@ int update_configuration( int change_idx, struct SimData *SD){
         //now find subset of affected neigbhors which have this spin in their plaquette
         for(j=0;j<SD->nneighbors_update_per_site;j++){
             int affected_neighbor_idx = SD->neighbors_update[SD->nneighbors_update_per_site*change_idx+j];
+            SD->dual_configuration[affected_neighbor_idx] = 
+                1 - SD->dual_configuration[affected_neighbor_idx];
+            /*
             for(k=0;k<SD->nneighbors_per_site;k++){
                 int neighbors_neighbor_idx = SD->neighbors[SD->nneighbors_per_site*affected_neighbor_idx+k];
                 if(neighbors_neighbor_idx==change_idx){
@@ -200,6 +213,7 @@ int update_configuration( int change_idx, struct SimData *SD){
                     break;
                 }
             }
+            */
         }
     }
     //event_storage[SD->current_step] = change_idx;
@@ -303,15 +317,16 @@ int run_kmc_spin(double stop_time,struct SimData *SD){
         }
 
         //double prob = get_prob();
-        double prob = get_frandom_2();
+        double time_prob = get_frandom_2();
         double total_rate = sum_rates(SD);
-        dt = -log(prob)/total_rate;
+        dt = -log(time_prob)/total_rate;
         elapsed_time += dt;
         if(elapsed_time >= max_time ){
             copy_configuration_prev(SD);
         }
 
 //        for(i=0;i<SD->n_event_types;i++) printf("%f ",SD->cumulative_rates[i]);
+        double prob = get_frandom();
         int event_type_i = b_find_event( prob*total_rate, SD);
         int rand_event = get_irandom( 0, SD->events_per_type[event_type_i]-1 );
         int move_site = SD->events_by_type[event_type_i*SD->nsites+rand_event];

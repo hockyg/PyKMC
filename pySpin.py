@@ -44,7 +44,7 @@ def simulate(options):
         sys.exit(1)
     else:
         simulation = Simulation()
-        simulation.initialize_new( options.lattice, options.model, 
+        simulation.initialize_new( options.lattice, options.model, options.dynamics_type,
                                    options.side_length, options.temperature, 
                                    options.max_time, seed=seed )
         simulation.command_line_options = options
@@ -138,6 +138,8 @@ def main():
                       help="Read in stored configuration (default: use random)")
     parser.add_option('-m', '--model', default="FA", 
                       help="Model to simulate (default: %default)" )
+    parser.add_option('--dynamics_type', default="Metropolis",
+                      help="Type of dynamics to run (default: %default)")
     parser.add_option('-l', '--lattice', default="linear", 
                       help="Model to simulate (default: %default)" )
     parser.add_option('-T', '--temperature', default=1.0, type=float,
@@ -168,7 +170,7 @@ def main():
 
     if not options.model in ModelRegistry:
         print "Model not yet defined. Please select from:"
-        print "\t",ModelRegistry.keys()
+        print "\t",sorted(ModelRegistry.keys())
         parser.print_help()
         sys.exit(1)
 
@@ -176,7 +178,13 @@ def main():
  
     if not options.lattice in LatticeRegistry:
         print "Lattice not yet defined. Please select from:"
-        print "\t",LatticeRegistry.keys()
+        print "\t",sorted(LatticeRegistry.keys())
+        parser.print_help()
+        sys.exit(1)
+
+    if not options.dynamics_type in dynamics_dict:
+        print "Dynamics type selected not available. Please select from:"
+        print "\t",sorted(dynamics_dict.keys())
         parser.print_help()
         sys.exit(1)
 

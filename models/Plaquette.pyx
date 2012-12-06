@@ -21,16 +21,17 @@ cdef gen_pascal_parity( np.ndarray[np.int_t,ndim=2] pascal_parity, int linear_si
             pascal_parity[i,i+j] = (pascal_parity[i-1,i+j]+pascal_parity[i,i+j-1])%2
             pascal_parity[i+j,i] = (pascal_parity[i+j-1,i]+pascal_parity[i+j,i-1])%2
 
-def test_dual( configuration, linear_size ):
+def test_triangle_dual( configuration, dual_configuration, int linear_size ):
     cdef int i,j
-    cdef np.ndarray dual_configuration = np.zeros(configuration.shape,dtype=ct.c_int)
+#    cdef np.ndarray dual_configuration = np.zeros(configuration.shape,dtype=ct.c_int)
+    cdef int sumvar = 0
     for i in range(linear_size):
         for j in range(linear_size):
             spinij = configuration[i,j]
             spinip1j = configuration[(i+1)%linear_size,j]
             spinip1jp1 = configuration[(i+1)%linear_size,(j+1)%linear_size]
-            dual_configuration[i,j] = ( 1-spinij*spinip1j*spinip1jp1 )/2
-    return dual_configuration
+            sumvar = sumvar + abs(dual_configuration[i,j] - ( 1-spinij*spinip1j*spinip1jp1 )/2)
+    return sumvar
 
 cdef pascal_parity_f(int row, int col):
     """get the parity of a pascal triangle entry using lucas's theorem.
@@ -73,7 +74,7 @@ class TriangleClass(object):
         self.nsites = side_length*side_length
         self.n_event_types = 4
 
-    def EventRates(self,double temp):
+    def EventRates(self,double temp,int dynamics_number):
         cdef int i
         cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
         # can create or distroy one excitation with a single spin flip
@@ -81,14 +82,19 @@ class TriangleClass(object):
         cdef float excitations_created
         for i in range(self.n_event_types):
             excitations_created = excitations_created_array[i];
-            event_rates[i] = (excitations_created>0)*np.exp(-excitations_created/temp) + (excitations_created<=0);
+            # Glauber dynamics
+            if dynamics_number == 1:
+                event_rates[i] = 1./(1+np.exp(excitations_created/temp))
+            # Metropolis
+            else:
+                event_rates[i] = (excitations_created>0)*np.exp(-excitations_created/temp) + (excitations_created<=0)
         return event_rates
 
     def Neighbors(self):
         """ Calculates all neighbors for all sites """
         cdef int nsites = self.nsites
         cdef int nneighbors_per_site = 2
-        cdef int nneighbors_update_per_site = 4
+        cdef int nneighbors_update_per_site = 2
         cdef int site_idx, j
         cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
         cdef np.ndarray[np.int_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_update_per_site),dtype=ct.c_int)
@@ -118,9 +124,9 @@ class TriangleClass(object):
                  self.row_col_to_idx(d_row,f_column) ], \
                [ 
                  self.row_col_to_idx(u_row,col_num), 
-                 self.row_col_to_idx(u_row,b_column), 
-                 self.row_col_to_idx(d_row,col_num), 
-                 self.row_col_to_idx(d_row,f_column),  ],
+                 self.row_col_to_idx(u_row,b_column), ],
+#                 self.row_col_to_idx(d_row,col_num), 
+#                 self.row_col_to_idx(d_row,f_column),  ],
 
     def row_col_to_idx(self, int row, int col):
         return row*self.side_length+col
@@ -170,14 +176,19 @@ class SquareClass(object):
         self.nsites = side_length*side_length
         self.n_event_types = 5
 
-    def EventRates(self,double temp):
+    def EventRates(self,double temp, int dynamics_number):
         cdef int i
         cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
         cdef np.ndarray excitations_created_array = np.array( np.arange(-4.,5.,2), dtype=ct.c_double)
         cdef float excitations_created
-        for i in range(5):
+        for i in range(self.n_event_types):
             excitations_created = excitations_created_array[i];
-            event_rates[i] = (excitations_created>0)*np.exp(-excitations_created/temp) + (excitations_created<=0);
+            # Glauber dynamics
+            if dynamics_number == 1:
+                event_rates[i] = 1./(1+np.exp(excitations_created/temp))
+            # Metropolis
+            else:
+                event_rates[i] = (excitations_created>0)*np.exp(-excitations_created/temp) + (excitations_created<=0)
         return event_rates
 
     def Neighbors(self):

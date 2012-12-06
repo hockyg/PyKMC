@@ -23,6 +23,7 @@ ModelRegistry[East.model_name] = East
 ModelRegistry[Plaquette.model_name] = Plaquette
 
 model_dict = {"FA":0, "East":1, "Plaquette":10}
+dynamics_dict = {"Metropolis":0, "Glauber":1}
 has_dual = ["Plaquette"]
 
 #definitions
@@ -69,7 +70,7 @@ class Simulation(object):
     def __init__(self):
         pass
 
-    def initialize_new(self,lattice_name,model_name,side_length,temperature,max_time,seed=0):
+    def initialize_new(self,lattice_name,model_name,dynamics_type,side_length,temperature,max_time,seed=0):
         self.initial_configuration = None
         self.dual_configuration = None
         self.command_line_options = None
@@ -90,7 +91,7 @@ class Simulation(object):
         nneighbors_per_site,nneighbors_update_per_site, neighbors, neighbors_update = lattice.Neighbors()
         self.nsites = nsites = lattice.nsites
         self.n_event_types = n_event_types = lattice.n_event_types
-        event_rates = lattice.EventRates(temperature)
+        event_rates = lattice.EventRates(temperature,dynamics_dict[dynamics_type])
 
         if self.model_name in has_dual:
             self.configuration, self.dual_configuration = lattice.RandomConfiguration( temperature )
@@ -107,6 +108,7 @@ class Simulation(object):
         else:
             print "In SpinObj.pyx, have not defined which spin values are non-excited"
             sys.exit(2)
+
 
 
         # set up system object
@@ -152,7 +154,7 @@ class Simulation(object):
 #        self.restarted_from = None
 
     def write_frame(self):
-        pickle.dump(self.system, self.trj_file )
+        pickle.dump(self.system.get_frame_state(), self.trj_file )
 
     def setup_output_files(self,mode="w",compresslevel=3):
         if self.final_options.write_trj > 0:
@@ -193,6 +195,19 @@ class SpinSys(object):
         self.created_on = socket.gethostname()
         self.creation_host_system_info = os.uname()
         self.exception_list = []
+        # exceptions for saving a single frame/configuration
+        self.frame_exception_list = ["neighbors", "neighbors_update",                                                    "events", "event_types", "events_by_type",
+                                     "events_per_type", "event_refs",
+                                     "event_rates", "cumulative_rates",
+                                     ]
+
+    def get_frame_state(self):
+        state = { }
+        for key in SimDataFields:
+            if hasattr(self, key) and key not in self.frame_exception_list:
+                state[key] = getattr(self, key)
+
+        return state
 
     def print_state(self):
         for key in sorted(SimDataFields):
