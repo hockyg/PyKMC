@@ -36,6 +36,7 @@ int get_event_type(int site_idx, struct SimData *SD){
 
 //WARNING, next works for square and triangular plaquette model. would need to check for future plaquette interactions, if any
         event_type = (excitations_created+SD->n_event_types-1)/2;
+        //printf("\t\t\tSite: %i Event_type: %i\n",site_idx,event_type);
     }
     else{
        printf("pySpin.c: Model number not yet supported by get_event_type\n");
@@ -118,6 +119,8 @@ void print_all_event_types( struct SimData *SD ){
 }
 
 int change_event_type( int i, int old_event_type, int new_event_type, struct SimData *SD){
+//first check if old and new event types are the same
+    if(old_event_type == new_event_type) return;
 //first remove it from the old list (note, this hopefully should work even if last event in list)
     int nsites = SD->nsites;
     int old_final_event_ref = SD->events_per_type[old_event_type]-1;
@@ -143,10 +146,11 @@ int change_event_type( int i, int old_event_type, int new_event_type, struct Sim
 }
 
 int update_events_i( int move_site, struct SimData *SD){
-    int i,j,state_i;
+    int i,j,k,ii,state_i,state_ii;
     //int n_possible_events = 0;
     //float event_rate = 0.0;
     int model_number = SD->model_number;
+    int nneighbors_per_site= SD->nneighbors_per_site;
     int nneighbors_update_per_site = SD->nneighbors_update_per_site;
 
     //first do it for this site
@@ -161,34 +165,49 @@ int update_events_i( int move_site, struct SimData *SD){
     //print_all_event_types(SD);
     change_event_type( i, old_event_type, new_event_type, SD );
     //print_all_event_types(SD);
+//    printf("Updating events for site %i\n",i);
 
     // now do it for neighbors of this site
-    for(j=0;j<SD->nneighbors_per_site;j++){
-        i = SD->neighbors[SD->nneighbors_per_site*move_site+j];
+    for(j=0;j<nneighbors_per_site;j++){
+        i = SD->neighbors[nneighbors_per_site*move_site+j];
         state_i = SD->configuration[i];
         old_event_type = SD->event_types[i];
         new_event_type = get_event_type(i,SD);
         SD->events[i] = switch_state( state_i, model_number );
         change_event_type( i, old_event_type, new_event_type, SD );
+//        printf("\tUpdating events for site %i\n",i);
     }
 
     // now do it for neighbors this site affects
     for(j=0;j<nneighbors_update_per_site;j++){
         i = SD->neighbors_update[nneighbors_update_per_site*move_site+j];
+//        printf("\tUpdating events for site %i\n",i);
         state_i = SD->configuration[i];
         old_event_type = SD->event_types[i];
         new_event_type = get_event_type(i,SD);
         SD->events[i] = switch_state( state_i, model_number );
+        change_event_type( i, old_event_type, new_event_type, SD );
+        // and update neighbors of these sites as well
+        for(k=0;k<nneighbors_per_site;k++){
+            ii = SD->neighbors[nneighbors_per_site*i+k];
+            if( ii == move_site ) continue;
+//            printf("\t\tUpdating events for site %i\n",ii);
+            state_ii = SD->configuration[ii];
+            old_event_type = SD->event_types[ii];
+            new_event_type = get_event_type(ii,SD);
+            SD->events[ii] = switch_state( state_ii, model_number );
+            change_event_type( ii, old_event_type, new_event_type, SD );
+        }
+        
     // printf("Changing site %i (neighbor of %i) from type %i to %i\n",i,move_site,old_event_type,new_event_type);
     //print_all_event_types(SD);
-        change_event_type( i, old_event_type, new_event_type, SD );
     //print_all_event_types(SD);
     }
     return 0;
 }
 
 int update_configuration( int change_idx, struct SimData *SD){
-    int j,k;
+    int j;
     int result = SD->events[change_idx];
     // Debug code:
     //printf("Changing spin %i to %i, which effects %i %i %i with rate %f\n",change_idx,result, SD->neighbors_update[SD->nneighbors_update_per_site*change_idx+0], SD->neighbors_update[SD->nneighbors_update_per_site*change_idx+1], SD->neighbors_update[SD->nneighbors_update_per_site*change_idx+2],SD->event_rates[change_idx]);
@@ -307,7 +326,6 @@ double get_prob(){
 }
 
 int run_kmc_spin(double stop_time,struct SimData *SD){
-    int i;
     long step = 0;
     SD->current_step = 0;
     int n_possible_events = SD->n_possible_events;
