@@ -250,6 +250,13 @@ double sum_rates( struct SimData *SD ){
     return total_rate;
 } 
 
+//linear search through cumulative event probabilities. may be faster than binary search since num event types so small
+int l_find_event( double searchval, struct SimData *SD){
+    int i=0;
+    while(SD->cumulative_rates[i]<searchval && i<SD->n_event_types) i++;
+    return i;
+}
+
 //binary search through cumulative event probabilities
 int b_find_event( double searchval, struct SimData *SD){
     int final_event = SD->n_event_types - 1;
@@ -327,7 +334,8 @@ int run_kmc_spin(double stop_time,struct SimData *SD){
 
 //        for(i=0;i<SD->n_event_types;i++) printf("%f ",SD->cumulative_rates[i]);
         double prob = get_frandom();
-        int event_type_i = b_find_event( prob*total_rate, SD);
+        //int event_type_i = b_find_event( prob*total_rate, SD);
+        int event_type_i = l_find_event( prob*total_rate, SD);
         int rand_event = get_irandom( 0, SD->events_per_type[event_type_i]-1 );
         int move_site = SD->events_by_type[event_type_i*SD->nsites+rand_event];
 //        printf("\n %f %f %f %i %i %i\n",total_rate,prob,prob*total_rate,event_type_i,rand_event,move_site);
