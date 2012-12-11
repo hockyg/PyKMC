@@ -361,6 +361,7 @@ int run_kmc_spin(double stop_time,struct SimData *SD){
         update_events_i( move_site, SD );
         step++;
     }
+    sum_rates(SD);
     SD->time += elapsed_time;
     //printf("Avg dt: %f. Actual increasted time %f\n",(double)elapsed_time/step,elapsed_time);
     SD->current_step = step;

@@ -94,6 +94,12 @@ def simulate(options):
         total_steps=0L
         last_time = simulation.stop_times[-1]
         for frame_idx,stop_time in enumerate(simulation.stop_times):
+            #print simulation.system.configuration.reshape((8,-1))
+            #print simulation.system.dual_configuration.reshape((8,-1))
+            #print simulation.system.event_types.reshape((8,-1))
+            #print "Total rate:", simulation.system.total_rate, "Should be:", (simulation.system.events_per_type*simulation.system.event_rates).sum()
+            #print simulation.system.events_per_type
+            #print simulation.system.event_rates
             return_val = C.run_kmc_spin(stop_time, simulation.system.SD)
             if return_val == -1: 
                 print "No more possible moves"

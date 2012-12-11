@@ -12,7 +12,7 @@ def tee_logfile( output_prefix ):
     sys.stdout = tee( stdout_sv, fh )
     sys.stderr = tee( stderr_sv, fh )
 
-def c_to_T_ideal( int nsites, np.ndarray[np.int_t,ndim=1] configuration ):
+def c_to_T_ideal( int nsites, np.ndarray[np.int32_t,ndim=1] configuration ):
     """converts the concentration of up spins for a lattice gas of zeros and ones to an effective temperature"""
     cdef int i
     cdef float c = 0.0
@@ -22,7 +22,7 @@ def c_to_T_ideal( int nsites, np.ndarray[np.int_t,ndim=1] configuration ):
     # c = 1/(1+exp(1/T))
     return 1./np.log(1/c-1)
 
-def persistence( int nsites, int ndownspins_start, np.ndarray[np.int_t,ndim=1] persistence_array ):
+def persistence( int nsites, int ndownspins_start, np.ndarray[np.int32_t,ndim=1] persistence_array ):
     cdef int i
     cdef downpersist = 0
     cdef totalpersist = 0

@@ -14,7 +14,7 @@ import ctypes as ct
 changes_per_step = 1
 model_name = "Plaquette"
 
-cdef gen_pascal_parity( np.ndarray[np.int_t,ndim=2] pascal_parity, int linear_size ):
+cdef gen_pascal_parity( np.ndarray[np.int32_t,ndim=2] pascal_parity, int linear_size ):
     cdef int i,j
     for i in range(1,linear_size):
         for j in range(0,linear_size-2*i):
@@ -96,8 +96,8 @@ class TriangleClass(object):
         cdef int nneighbors_per_site = 2
         cdef int nneighbors_update_per_site = 2
         cdef int site_idx, j
-        cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
-        cdef np.ndarray[np.int_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_update_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_update_per_site),dtype=ct.c_int)
         for site_idx in range(nsites):
             neighbors_i, neighbors_i_update = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
@@ -157,9 +157,9 @@ class TriangleClass(object):
             print "Side length must be a power of 2 to generate a random triangular plaquette configuration"
             sys.exit(1)
 
-        cdef np.ndarray[np.int_t,ndim=2] dual_configuration = RandomConfigurationIdeal( self.nsites, temperature ).reshape((side_length,side_length))
+        cdef np.ndarray[np.int32_t,ndim=2] dual_configuration = RandomConfigurationIdeal( self.nsites, temperature ).reshape((side_length,side_length))
         # note, start all spin up
-        cdef np.ndarray[np.int_t,ndim=2] configuration = np.ones((side_length,side_length),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] configuration = np.ones((side_length,side_length),dtype=ct.c_int)
 
         for i in range(side_length):
             for j in range(side_length):
@@ -195,10 +195,10 @@ class SquareClass(object):
         """ Calculates all neighbors for all sites """
         cdef int nsites = self.nsites
         cdef int nneighbors_per_site = 3
-        cdef int nneighbors_update_per_site = 8
+        cdef int nneighbors_update_per_site = 3
         cdef int site_idx, j
-        cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
-        cdef np.ndarray[np.int_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_update_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_update_per_site),dtype=ct.c_int)
         for site_idx in range(nsites):
             neighbors_i, neighbors_i_update = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
@@ -227,12 +227,12 @@ class SquareClass(object):
                [ 
                  self.row_col_to_idx(row_num,b_column), 
                  self.row_col_to_idx(u_row,col_num), 
-                 self.row_col_to_idx(u_row,b_column), 
-                 self.row_col_to_idx(row_num,f_column), 
-                 self.row_col_to_idx(u_row,f_column), 
-                 self.row_col_to_idx(d_row,col_num), 
-                 self.row_col_to_idx(d_row,b_column), 
-                 self.row_col_to_idx(d_row,f_column),  ],
+                 self.row_col_to_idx(u_row,b_column), ]
+#                 self.row_col_to_idx(row_num,f_column), 
+#                 self.row_col_to_idx(u_row,f_column), 
+#                 self.row_col_to_idx(d_row,col_num), 
+#                 self.row_col_to_idx(d_row,b_column), 
+#                 self.row_col_to_idx(d_row,f_column),  ],
 
     def row_col_to_idx(self, int row, int col):
         return row*self.side_length+col
@@ -251,8 +251,8 @@ class SquareClass(object):
             sys.exit(1)
         dual_sub_configuration_flat = RandomConfigurationIdeal( self.nsites/4, temperature )
 
-        cdef np.ndarray[np.int_t,ndim=2] dual_configuration = np.zeros((side_length,side_length),dtype=ct.c_int)
-        cdef np.ndarray[np.int_t,ndim=2] dual_sub_configuration = dual_sub_configuration_flat.reshape((half_side_length,half_side_length))
+        cdef np.ndarray[np.int32_t,ndim=2] dual_configuration = np.zeros((side_length,side_length),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] dual_sub_configuration = dual_sub_configuration_flat.reshape((half_side_length,half_side_length))
  
         for k in range(2):
             for l in range(2):
@@ -260,8 +260,8 @@ class SquareClass(object):
                     for j in range(half_side_length):
                         dual_configuration[k*half_side_length+i,l*half_side_length+j] = dual_sub_configuration[i,j]
                         
-        cdef np.ndarray[np.int_t,ndim=2] configuration = np.zeros((side_length,side_length),dtype=ct.c_int)
-        cdef np.ndarray[np.int_t,ndim=1] rand_spins
+        cdef np.ndarray[np.int32_t,ndim=2] configuration = np.zeros((side_length,side_length),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=1] rand_spins
 
         # first fill in top row
         rand_spins = np.array( 2*np.random.randint(2,size=side_length)-1, dtype=ct.c_int )
@@ -290,7 +290,7 @@ class SquareClass(object):
 LatticeRegistry = {"square":SquareClass, 
                    "triangle":TriangleClass}
 
-def PlaquetteEnergy(np.ndarray[np.int_t,ndim=1] configuration,np.ndarray[np.int_t,ndim=2] neighbors, int nsites, int nneighbors_per_site):
+def PlaquetteEnergy(np.ndarray[np.int32_t,ndim=1] configuration,np.ndarray[np.int32_t,ndim=2] neighbors, int nsites, int nneighbors_per_site):
     cdef int i,j
     cdef int spin_prod
     cdef double site_e, total_e
