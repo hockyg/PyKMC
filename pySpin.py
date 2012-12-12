@@ -20,7 +20,7 @@ def simulate(options):
         sourcedir=os.path.abspath(os.path.dirname(sys.argv[0]))
         pysimlib=os.path.join(sourcedir,libname)
 
-    print >>verbose_out, "Using simulation object:",pysimlib
+    print >>verbose_out, "Using simulation object: %s\n"%(pysimlib)
     C = ct.CDLL(pysimlib)
     C.setup_spin_system.restype = c_int
     C.setup_spin_system.argtypes = (SimData_p,)
@@ -28,8 +28,6 @@ def simulate(options):
     C.cleanup_spin_system.argtypes = (SimData_p,)
     C.run_kmc_spin.restype = c_int
     C.run_kmc_spin.argtypes=(c_double,SimData_p) # firt arg is stop_time
-#    C.get_event_type.restype = c_int
-#    C.get_event_type.argtypes = (c_int, SimData_p,)
 
     if options.seed is not None:
         seed=options.seed
@@ -37,7 +35,6 @@ def simulate(options):
         import random
         seed=random.SystemRandom().randint(0,10000000)
     np.random.seed(seed)
-    print >>verbose_out,"\tUsing seed: %i"%seed
 
     if options.input is not None:
         print "Reading input not currently supported"
@@ -55,6 +52,23 @@ def simulate(options):
 
         if options.info_time <= 0 or options.info_time > options.max_time:
             options.info_time = options.max_time
+
+        print >>verbose_out,"Lattice parameters:"
+        print >>verbose_out,"\tmodel: %s"%(options.model)
+        print >>verbose_out,"\tlattice: %s"%(options.lattice)
+        print >>verbose_out,"\tlinear_size = %i (nsites = %i)"%(simulation.side_length,simulation.nsites)
+        print >>verbose_out
+
+        print >>verbose_out,"Simulation parameters:"
+        print >>verbose_out,"\tT = %f (beta = %f)"%(simulation.system.temp, 1./simulation.system.temp)
+        print >>verbose_out,"\tmaximum_time = %e"%(simulation.max_time)
+        print >>verbose_out,"\tdynamics_type: %s"%options.dynamics_type
+        print >>verbose_out,"\tseed: %i"%seed
+        if options.output_prefix:
+            print >>verbose_out,"\toutput_prefix: %s"%(options.output_prefix) 
+            print >>verbose_out,"\twriting_trajectory:",options.write_trj
+        print >>verbose_out
+        
 
     try:
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())
@@ -81,12 +95,9 @@ def simulate(options):
         if options.output_prefix and options.write_trj:
             simulation.write_frame()
 
-        #p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
-        
-        #print "Time: %.2e"%simulation.system.time, p1, p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ),model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
-#        print "Time: %.2e"%simulation.system.time, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ),model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
-#uncomment for newest
-        print "Time: %.2e Energy: %f"%( simulation.system.time, simulation.system.total_energy ),c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
+        E_per_site = simulation.system.total_energy/simulation.system.nsites
+        Teff = 1/np.log(1/E_per_site-1)
+        print "Time: %.2e Dt: %.2e | Energy: %.2e Teff: %.4e"%( simulation.system.time, average_time_per_step, E_per_site, Teff )
 
         sim_timer = Timer()
         prev_time = sim_timer.gettime()
@@ -94,21 +105,12 @@ def simulate(options):
         total_steps=0L
         last_time = simulation.stop_times[-1]
         for frame_idx,stop_time in enumerate(simulation.stop_times):
-            #print simulation.system.configuration.reshape((8,-1))
-            #print simulation.system.dual_configuration.reshape((8,-1))
-            #print simulation.system.event_types.reshape((8,-1))
-            #print "Total rate:", simulation.system.total_rate, "Should be:", (simulation.system.events_per_type*simulation.system.event_rates).sum()
-            #print simulation.system.events_per_type
-            #print simulation.system.event_rates
             return_val = C.run_kmc_spin(stop_time, simulation.system.SD)
             if return_val == -1: 
                 print "No more possible moves"
                 break
-            #p1,p2 = persistence( simulation.nsites, simulation.initial_nonexcited, simulation.system.persistence_array)
             if options.output_prefix and options.write_trj:
                 simulation.write_frame()
-            #print "Time: %.2e"%simulation.system.time,p1,p2, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
-#            print "Time: %.2e"%simulation.system.time, c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration ), model.SquareEnergy( simulation.system.configuration, simulation.system.neighbors, simulation.system.nsites,simulation.system.nneighbors_per_site )
 
             elapsed_time = stop_time - prev_stop_time
             avg_dt = elapsed_time/simulation.system.SD.current_step
@@ -120,15 +122,17 @@ def simulate(options):
             stage_elapsed_time = sim_timer.gettime()-prev_time
             wall_time_per_sim_time = stage_elapsed_time / ( stop_time - prev_stop_time )
             wall_time_remaining = time_remaining * wall_time_per_sim_time
+            predicted_total_walltime = wall_time_remaining+elapsed_time
             total_steps = total_steps+simulation.system.SD.current_step
             efficiency = simulation.system.SD.current_step/stage_elapsed_time
 
-            #this should be last major thing in loop
+            #this should be last major thing in loop, before printing logging info
             prev_time = sim_timer.gettime()
             prev_stop_time = stop_time
 
-#uncomment for newest
-            print "Time: %.2e Energy: %f Dt: %3.2e SimTime: %f (etr: %f) Eff: %3.2e"%( simulation.system.time, simulation.system.total_energy, avg_dt, elapsed_time, wall_time_remaining, efficiency ), c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
+            E_per_site = simulation.system.total_energy/simulation.system.nsites
+            Teff = 1/np.log(1/E_per_site-1)
+            print "Time: %.2e Dt: %3.2e | Energy: %.2e Teff: %.4e\n\tElapsed: %.2e Pred: %.2e Etr: %.2e Eff: %3.2e"%( simulation.system.time, avg_dt, E_per_site, Teff, elapsed_time, predicted_total_walltime, wall_time_remaining, efficiency )
 
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)
