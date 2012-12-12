@@ -130,7 +130,6 @@ def simulate(options):
 #uncomment for newest
             print "Time: %.2e Energy: %f Dt: %3.2e SimTime: %f (etr: %f) Eff: %3.2e"%( simulation.system.time, simulation.system.total_energy, avg_dt, elapsed_time, wall_time_remaining, efficiency ), c_to_T_ideal( simulation.nsites, simulation.system.dual_configuration )
 
-
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)
     except KeyboardInterrupt:

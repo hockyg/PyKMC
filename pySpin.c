@@ -120,7 +120,7 @@ void print_all_event_types( struct SimData *SD ){
 
 int change_event_type( int i, int old_event_type, int new_event_type, struct SimData *SD){
 //first check if old and new event types are the same
-    if(old_event_type == new_event_type) return;
+    if(old_event_type == new_event_type) return 0;
 //first remove it from the old list (note, this hopefully should work even if last event in list)
     int nsites = SD->nsites;
     int old_final_event_ref = SD->events_per_type[old_event_type]-1;
@@ -351,10 +351,13 @@ int run_kmc_spin(double stop_time,struct SimData *SD){
         }
 
 //        for(i=0;i<SD->n_event_types;i++) printf("%f ",SD->cumulative_rates[i]);
-        double prob = get_frandom();
+        // note, if there are zero events of type 0, and get_frandom were used and returned prob=0.000000, then event type 0 will be selected anyway, and will cause a segfault
+        double prob = get_frandom_2();
         //int event_type_i = b_find_event( prob*total_rate, SD);
         int event_type_i = l_find_event( prob*total_rate, SD);
-        int rand_event = get_irandom( 0, SD->events_per_type[event_type_i]-1 );
+//        if(elapsed_time > 6400762.4 && max_time > 36904200 ) printf("%f Warning! %i %i %f %i\n",elapsed_time,event_type_i,SD->n_event_types,prob,SD->events_per_type[event_type_i]-1);
+        int rand_event = get_irandomx( 0, SD->events_per_type[event_type_i]-1 );
+
         int move_site = SD->events_by_type[event_type_i*SD->nsites+rand_event];
 //        printf("\n %f %f %f %i %i %i\n",total_rate,prob,prob*total_rate,event_type_i,rand_event,move_site);
         update_configuration( move_site, SD );
