@@ -10,7 +10,6 @@ int get_event_type(int site_idx, struct SimData *SD){
     int j;
     int event_type = -1;
     int nneighbors_per_site = SD->nneighbors_per_site;
-    //float event_rate = 0.0;
     if(SD->model_number < 2){ // FA or East
         double constraint = 0.0;
         int state_i = SD->configuration[site_idx];
@@ -20,20 +19,14 @@ int get_event_type(int site_idx, struct SimData *SD){
             constraint+=SD->configuration[SD->neighbors[nneighbors_per_site*site_idx+j]];
         }
         event_type = 2*constraint+state_i;
-//        event_rate = (1-state_i)*constraint*SD->betaexp + state_i*constraint;
-//        printf("%i %i %f %f %f\n",site_idx,state_i,constraint,SD->betaexp,event_rate);
     }
     else if(SD->model_number==10){ // Plaquette
         int excitations_created = 0;
         excitations_created += ( 1-2*SD->dual_configuration[site_idx] ); // changes 0 -> 1 and 1-> -1
-        // note, on the next line it is just the first nneighbors_per_site out of the neighbors_update list which have this spin in their plaquette. e.g. 3 more spins out of eight neighbors for square plaquette
         for(j=0;j<SD->nneighbors_update_per_site;j++){
             int neighbor_site = SD->neighbors_update[SD->nneighbors_update_per_site*site_idx+j];
             excitations_created += ( 1 - 2*SD->dual_configuration[neighbor_site] );
         }
-        //metropolis rate
-        //event_rate = (excitations_created>0)*pow(SD->betaexp,excitations_created) + (excitations_created<=0); // if n plaquettes are excited, rate is exp(-n * beta). otherwise rate 1 (decreases energy or keeps same)
-
 //WARNING, next works for square and triangular plaquette model. would need to check for future plaquette interactions, if any
         event_type = (excitations_created+SD->n_event_types-1)/2;
         //printf("\t\t\tSite: %i Event_type: %i\n",site_idx,event_type);
@@ -87,17 +80,6 @@ int all_events( struct SimData *SD){
         }
     }
     SD->n_possible_events = n_possible_events;
-    //debug code
-/*
-    for(i=0;i<SD->n_event_types;i++){
-        printf("type %i) rate: %f nevents: %i\n",i,SD->event_rates[i],SD->events_per_type[i]);
-    }
-    for(i=0;i<SD->n_event_types;i++){
-        printf("%i )",i);
-        for(j=0;j<SD->events_per_type[i];j++) printf("%i ",SD->events_by_type[i*SD->nsites+j]);
-        printf("\n");
-    }
-*/
     return n_possible_events;
 }
 
@@ -154,18 +136,13 @@ int update_events_i( int move_site, struct SimData *SD){
     int nneighbors_update_per_site = SD->nneighbors_update_per_site;
 
     //first do it for this site
-//    int site_idx = SD->events_by_type[SD->event_types[event_i]*SD->nsites+SD->event_refs[event_i]]; // need this below
     i = move_site;
     state_i = SD->configuration[i];
     int old_event_type = SD->event_types[i];
     int new_event_type = get_event_type(i,SD);
     SD->events[i] = switch_state( state_i, model_number );
     //now change where it is in the list of events for that type
-
-    //print_all_event_types(SD);
     change_event_type( i, old_event_type, new_event_type, SD );
-    //print_all_event_types(SD);
-//    printf("Updating events for site %i\n",i);
 
     // now do it for neighbors of this site
     for(j=0;j<nneighbors_per_site;j++){
@@ -175,13 +152,11 @@ int update_events_i( int move_site, struct SimData *SD){
         new_event_type = get_event_type(i,SD);
         SD->events[i] = switch_state( state_i, model_number );
         change_event_type( i, old_event_type, new_event_type, SD );
-//        printf("\tUpdating events for site %i\n",i);
     }
 
     // now do it for neighbors this site affects
     for(j=0;j<nneighbors_update_per_site;j++){
         i = SD->neighbors_update[nneighbors_update_per_site*move_site+j];
-//        printf("\tUpdating events for site %i\n",i);
         state_i = SD->configuration[i];
         old_event_type = SD->event_types[i];
         new_event_type = get_event_type(i,SD);
@@ -191,17 +166,12 @@ int update_events_i( int move_site, struct SimData *SD){
         for(k=0;k<nneighbors_per_site;k++){
             ii = SD->neighbors[nneighbors_per_site*i+k];
             if( ii == move_site ) continue;
-//            printf("\t\tUpdating events for site %i\n",ii);
             state_ii = SD->configuration[ii];
             old_event_type = SD->event_types[ii];
             new_event_type = get_event_type(ii,SD);
             SD->events[ii] = switch_state( state_ii, model_number );
             change_event_type( ii, old_event_type, new_event_type, SD );
         }
-        
-    // printf("Changing site %i (neighbor of %i) from type %i to %i\n",i,move_site,old_event_type,new_event_type);
-    //print_all_event_types(SD);
-    //print_all_event_types(SD);
     }
     return 0;
 }
@@ -209,8 +179,6 @@ int update_events_i( int move_site, struct SimData *SD){
 int update_configuration( int change_idx, struct SimData *SD){
     int j;
     int result = SD->events[change_idx];
-    // Debug code:
-    //printf("Changing spin %i to %i, which effects %i %i %i with rate %f\n",change_idx,result, SD->neighbors_update[SD->nneighbors_update_per_site*change_idx+0], SD->neighbors_update[SD->nneighbors_update_per_site*change_idx+1], SD->neighbors_update[SD->nneighbors_update_per_site*change_idx+2],SD->event_rates[change_idx]);
     SD->configuration[change_idx] = result;
     if(SD->model_number<MAXZEROONEMODEL) SD->persistence_array[change_idx] = 0;
 
@@ -223,19 +191,8 @@ int update_configuration( int change_idx, struct SimData *SD){
             int affected_neighbor_idx = SD->neighbors_update[SD->nneighbors_update_per_site*change_idx+j];
             SD->dual_configuration[affected_neighbor_idx] = 
                 1 - SD->dual_configuration[affected_neighbor_idx];
-            /*
-            for(k=0;k<SD->nneighbors_per_site;k++){
-                int neighbors_neighbor_idx = SD->neighbors[SD->nneighbors_per_site*affected_neighbor_idx+k];
-                if(neighbors_neighbor_idx==change_idx){
-                    SD->dual_configuration[affected_neighbor_idx] = 
-                        1 - SD->dual_configuration[affected_neighbor_idx];
-                    break;
-                }
-            }
-            */
         }
     }
-    //event_storage[SD->current_step] = change_idx;
     return 0;
 }
 
@@ -257,15 +214,6 @@ double sum_rates( struct SimData *SD ){
     }
     SD->total_rate = total_rate;
     SD->n_possible_events = n_possible_events;
-    // debug code
-/*
-    for(i=0;i<SD->nsites;i++) printf("%i ",SD->configuration[i]) ;
-    printf("\n");
-    for(i=0;i<SD->n_event_types;i++){
-        printf("type %i) rate: %f nevents: %i\n",i,SD->event_rates[i],SD->events_per_type[i]);
-    }
-    printf("n_possible_events: %i\n",n_possible_events);
-*/
     return total_rate;
 } 
 
@@ -316,15 +264,6 @@ int copy_configuration_prev(struct SimData *SD){
     return 0;
 }
 
-//This function supplements the get_frandom function which returns a number in 0<=x<1, which is a problem in extremely rare but actually occuring cases when the random number appears as 0 and we then take its logarithm
-double get_prob(){
-    double prob = get_frandom();
-    while(prob==0){
-        prob = get_frandom();
-    }
-    return prob;
-}
-
 int run_kmc_spin(double stop_time,struct SimData *SD){
     long step = 0;
     SD->current_step = 0;
@@ -350,23 +289,19 @@ int run_kmc_spin(double stop_time,struct SimData *SD){
             copy_configuration_prev(SD);
         }
 
-//        for(i=0;i<SD->n_event_types;i++) printf("%f ",SD->cumulative_rates[i]);
         // note, if there are zero events of type 0, and get_frandom were used and returned prob=0.000000, then event type 0 will be selected anyway, and will cause a segfault
         double prob = get_frandom_2();
         //int event_type_i = b_find_event( prob*total_rate, SD);
         int event_type_i = l_find_event( prob*total_rate, SD);
-//        if(elapsed_time > 6400762.4 && max_time > 36904200 ) printf("%f Warning! %i %i %f %i\n",elapsed_time,event_type_i,SD->n_event_types,prob,SD->events_per_type[event_type_i]-1);
         int rand_event = get_irandomx( 0, SD->events_per_type[event_type_i]-1 );
 
         int move_site = SD->events_by_type[event_type_i*SD->nsites+rand_event];
-//        printf("\n %f %f %f %i %i %i\n",total_rate,prob,prob*total_rate,event_type_i,rand_event,move_site);
         update_configuration( move_site, SD );
         update_events_i( move_site, SD );
         step++;
     }
     sum_rates(SD);
     SD->time += elapsed_time;
-    //printf("Avg dt: %f. Actual increasted time %f\n",(double)elapsed_time/step,elapsed_time);
     SD->current_step = step;
     return return_val;
 }
