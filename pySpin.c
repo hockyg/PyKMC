@@ -6,6 +6,23 @@
 #include "pySpin.h"
 #include "random.h"
 
+double set_energy(struct SimData *SD){
+    int i;
+    int model_number = SD->model_number;
+    double energy = 0.0;
+    if(model_number<2){ // FA or East
+        for(i=0;i<SD->nsites;i++) energy+=(double)SD->configuration[i];
+    }
+    else if(SD->model_number==10){ // Plaquette
+        for(i=0;i<SD->nsites;i++) energy+=(double)SD->dual_configuration[i];
+    }
+    else{
+       printf("pySpin.c: Model number not yet supported by set_energy\n");
+    }
+    SD->total_energy = energy;
+    return energy;
+}
+
 int get_event_type(int site_idx, struct SimData *SD){
     int j;
     int event_type = -1;
@@ -182,16 +199,22 @@ int update_configuration( int change_idx, struct SimData *SD){
     SD->configuration[change_idx] = result;
     if(SD->model_number<MAXZEROONEMODEL) SD->persistence_array[change_idx] = 0;
 
-    //also update dual representation
+    //also update dual representation and energy
     if(SD->model_number==10){
         //change this site
-        SD->dual_configuration[change_idx] = 1 - SD->dual_configuration[change_idx];
+        int dual_result = 1 - SD->dual_configuration[change_idx];
+        SD->dual_configuration[change_idx] = dual_result;
+        SD->total_energy=SD->total_energy+(2*dual_result-1) ;
         //now find subset of affected neigbhors which have this spin in their plaquette
         for(j=0;j<SD->nneighbors_update_per_site;j++){
             int affected_neighbor_idx = SD->neighbors_update[SD->nneighbors_update_per_site*change_idx+j];
-            SD->dual_configuration[affected_neighbor_idx] = 
-                1 - SD->dual_configuration[affected_neighbor_idx];
+            dual_result = 1 - SD->dual_configuration[affected_neighbor_idx];
+            SD->dual_configuration[affected_neighbor_idx] = dual_result;
+            SD->total_energy=SD->total_energy+(2*dual_result-1) ;
         }
+    }
+    else{
+        SD->total_energy=SD->total_energy+(2*result-1) ;
     }
     return 0;
 }
@@ -310,6 +333,7 @@ int setup_spin_system(struct SimData *SD){
     set_seed(SD->seed);
     all_events(SD);
     sum_rates(SD);
+    set_energy(SD);
     return 0;
 }
 
