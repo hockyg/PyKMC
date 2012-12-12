@@ -12,13 +12,28 @@ class CubeClass(object):
     def __init__(self, int side_length ):
         self.side_length = side_length
         self.nsites = side_length*side_length*side_length
+        self.n_event_types = 2*(1+6) # 2 spin states (all empty neighbors + 6 neighbor sites )
+
+    def EventRates(self,double temp,int dynamics_number):
+        if ( dynamics_number != 0 ): raise AssertionError("FA model only supports metropolis dynamics")
+        cdef int i,j
+        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
+        cdef np.ndarray constraints = np.array( np.arange(0.,7.,1), dtype=ct.c_double) # 0,1,2,3,4,5,6 # number of affecting neighbors
+        cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_double) # 0 and 1
+        cdef float excitations_created
+        for i in range(7):
+            constraint = constraints[i]
+            for j in range(2):
+                spin_state = spin_states[j]
+                event_rates[2*constraint+spin_state] = (1-spin_state)*constraint*np.exp(-1/temp) + spin_state*constraint
+        return event_rates
 
     def Neighbors(self):
         """ Calculates all neighbors for all sites """
         cdef int nsites = self.nsites
         cdef int nneighbors_per_site = 6
         cdef int site_idx, j
-        cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
         for site_idx in range(nsites):
             neighbors_i = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
@@ -51,13 +66,28 @@ class SquareClass(object):
     def __init__(self, int side_length ):
         self.side_length = side_length
         self.nsites = side_length*side_length
+        self.n_event_types = 2*(1+4)
+
+    def EventRates(self,double temp,int dynamics_number):
+        if ( dynamics_number != 0 ): raise AssertionError("FA model only supports metropolis dynamics")
+        cdef int i,j
+        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
+        cdef np.ndarray constraints = np.array( np.arange(0.,5.,1), dtype=ct.c_double) # 0,1,2,3,4 # number of affecting neighbors
+        cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_double) # 0 and 1
+        cdef float excitations_created
+        for i in range(5):
+            constraint = constraints[i]
+            for j in range(2):
+                spin_state = spin_states[j]
+                event_rates[2*constraint+spin_state] = (1-spin_state)*constraint*np.exp(-1/temp) + spin_state*constraint
+        return event_rates
 
     def Neighbors(self):
         """ Calculates all neighbors for all sites """
         cdef int nsites = self.nsites
         cdef int nneighbors_per_site = 4
         cdef int site_idx, j
-        cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
         for site_idx in range(nsites):
             neighbors_i = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
@@ -87,6 +117,21 @@ class LinearClass(object):
     def __init__(self, int side_length ):
         self.side_length = side_length
         self.nsites = side_length
+        self.n_event_types = 2*(1+2)
+
+    def EventRates(self,double temp,int dynamics_number):
+        if ( dynamics_number != 0 ): raise AssertionError("FA model only supports metropolis dynamics")
+        cdef int i,j
+        cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
+        cdef np.ndarray constraints = np.array( np.arange(0.,3.,1), dtype=ct.c_double) # 0,1,2 # number of affecting neighbors
+        cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_double) # 0 and 1
+        cdef float excitations_created
+        for i in range(3):
+            constraint = constraints[i]
+            for j in range(2):
+                spin_state = spin_states[j]
+                event_rates[2*constraint+spin_state] = (1-spin_state)*constraint*np.exp(-1/temp) + spin_state*constraint
+        return event_rates
 
     def Neighbors(self):
         """ Calculates all neighbors for all sites """
@@ -94,7 +139,7 @@ class LinearClass(object):
         cdef int nsites = self.nsites
         cdef int nneighbors_per_site = 2
         cdef int site_idx, j
-        cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
         for site_idx in range(nsites):
             neighbors_i = self.NeighborsI(site_idx, nsites)
             for j in range(nneighbors_per_site):
@@ -123,17 +168,22 @@ class LinearClass(object):
 
 LatticeRegistry = {"linear":LinearClass, "square":SquareClass, "cube":CubeClass }
 
-def InitializeArrays( int nsites ):
+def InitializeArrays( int nsites, int n_event_types ):
     cdef np.ndarray events = np.zeros(nsites,dtype=ct.c_int)
-    cdef np.ndarray event_rates = np.zeros(nsites,dtype=ct.c_double)
+    cdef np.ndarray event_types = np.zeros(nsites,dtype=ct.c_int)
+    cdef np.ndarray events_by_type = np.zeros((n_event_types,nsites),dtype=ct.c_int)
+    cdef np.ndarray events_per_type = np.zeros(n_event_types,dtype=ct.c_int)
     cdef np.ndarray event_refs = -1*np.ones(nsites,dtype=ct.c_int)
-    cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=ct.c_double)
-    cdef np.ndarray cumulative_rates = np.zeros(nsites,dtype=ct.c_double)
+    cdef np.ndarray event_rates = np.zeros(n_event_types,dtype=ct.c_double)
+#    cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=ct.c_double)
+    cdef np.ndarray cumulative_rates = np.zeros(n_event_types,dtype=ct.c_double)
     cdef np.ndarray persistence_array= np.ones(nsites,dtype=ct.c_int)
     return {"events": events,
-            "event_rates": event_rates, 
+            "event_types": event_types,
+            "events_by_type": events_by_type,
+            "events_per_type": events_per_type,
             "event_refs": event_refs,
-            "event_ref_rates": event_ref_rates,
+            "event_rates": event_rates, 
             "cumulative_rates": cumulative_rates,
             "persistence_array": persistence_array,
            }

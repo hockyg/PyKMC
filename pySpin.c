@@ -314,8 +314,8 @@ int run_kmc_spin(double stop_time,struct SimData *SD){
 
         // note, if there are zero events of type 0, and get_frandom were used and returned prob=0.000000, then event type 0 will be selected anyway, and will cause a segfault
         double prob = get_frandom_2();
-        //int event_type_i = b_find_event( prob*total_rate, SD);
-        int event_type_i = l_find_event( prob*total_rate, SD);
+        int event_type_i = b_find_event( prob*total_rate, SD);
+        //int event_type_i = l_find_event( prob*total_rate, SD);
         int rand_event = get_irandomx( 0, SD->events_per_type[event_type_i]-1 );
 
         int move_site = SD->events_by_type[event_type_i*SD->nsites+rand_event];

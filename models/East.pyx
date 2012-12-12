@@ -13,13 +13,14 @@ class CubeClass(object):
         self.nsites = side_length*side_length*side_length
         self.n_event_types = 8
 
-    def EventRates(self,double temp):
+    def EventRates(self,double temp,int dynamics_number):
+        if ( dynamics_number != 0 ): raise AssertionError("East model only supports metropolis dynamics")
         cdef int i,j
         cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
-        cdef np.ndarray constraints = np.array( np.arange(0.,3.,1), dtype=ct.c_double) # 0,1,2,4 # number of affecting neighbors
+        cdef np.ndarray constraints = np.array( np.arange(0.,4.,1), dtype=ct.c_double) # 0,1,2,3 # number of affecting neighbors
         cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_double) # 0 and 1
         cdef float excitations_created
-        for i in range(2):
+        for i in range(4):
             constraint = constraints[i]
             for j in range(2):
                 spin_state = spin_states[j]
@@ -31,8 +32,8 @@ class CubeClass(object):
         cdef int nsites = self.nsites
         cdef int nneighbors_per_site = 3
         cdef int site_idx, j
-        cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
-        cdef np.ndarray[np.int_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
         for site_idx in range(nsites):
             neighbors_i, neighbors_i_update = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
@@ -69,13 +70,14 @@ class SquareClass(object):
         self.nsites = side_length*side_length
         self.n_event_types = 6
 
-    def EventRates(self,double temp):
+    def EventRates(self,double temp, int dynamics_number):
+        if ( dynamics_number != 0 ): raise AssertionError("East model only supports metropolis dynamics")
         cdef int i,j
         cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
         cdef np.ndarray constraints = np.array( np.arange(0.,3.,1), dtype=ct.c_double) # 0,1,2 # number of affecting neighbors
         cdef np.ndarray spin_states = np.array( np.arange(0.,2.,1), dtype=ct.c_double) # 0 and 1
         cdef float excitations_created
-        for i in range(2):
+        for i in range(3):
             constraint = constraints[i]
             for j in range(2):
                 spin_state = spin_states[j]
@@ -87,8 +89,8 @@ class SquareClass(object):
         cdef int nsites = self.nsites
         cdef int nneighbors_per_site = 2
         cdef int site_idx, j
-        cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
-        cdef np.ndarray[np.int_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
         for site_idx in range(nsites):
             neighbors_i, neighbors_i_update = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
@@ -122,7 +124,8 @@ class LinearClass(object):
         self.side_length = side_length
         self.n_event_types = 4
 
-    def EventRates(self,double temp):
+    def EventRates(self,double temp,int dynamics_number):
+        if ( dynamics_number != 0 ): raise AssertionError("East model only supports metropolis dynamics")
         cdef int i,j
         cdef np.ndarray event_rates = np.zeros(self.n_event_types,dtype=ct.c_double)
         cdef np.ndarray constraints = np.array( np.arange(0.,2.,1), dtype=ct.c_double) # 0 and 1
@@ -140,8 +143,8 @@ class LinearClass(object):
         cdef int nsites = self.nsites
         cdef int nneighbors_per_site = 1
         cdef int site_idx, j
-        cdef np.ndarray[np.int_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
-        cdef np.ndarray[np.int_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
+        cdef np.ndarray[np.int32_t,ndim=2] neighbors_update = np.zeros((nsites,nneighbors_per_site),dtype=ct.c_int)
         for site_idx in range(nsites):
             neighbors_i, neighbors_i_update = self.NeighborsI(site_idx)
             for j in range(nneighbors_per_site):
@@ -187,8 +190,6 @@ def InitializeArrays( int nsites, int n_event_types):
             "cumulative_rates": cumulative_rates,
             "persistence_array": persistence_array,
            }
-
-
 
 def RandomConfiguration( int nsites, double temperature ):
     """ Generates a random configuration commensurate with the temperature
