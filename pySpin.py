@@ -89,11 +89,16 @@ def simulate(options):
             max_time_log = int(np.ceil(np.log10(options.max_time)))
             prelim_stop_times = np.logspace( min_time_log, max_time_log, num=(max_time_log-min_time_log)*options.stops_per_decade+1)
             simulation.stop_times = prelim_stop_times[prelim_stop_times<=options.max_time]
+            if len(simulation.stop_times)==0:
+                # if simulation time is less than estimated dt (happens for very small lattices)
+                #     create an array of size 1 with just max time
+                simulation.stop_times = np.array(np.ones(1)*options.max_time,dtype=c_double)
             simulation.nstages = len(simulation.stop_times)
           
-        # before starting, write initial frame
+        # before starting, write initial frame and start file
         if options.output_prefix and options.write_trj:
             simulation.write_frame()
+            simulation.save_state(options.output_prefix+'.start.spinsim.gz')
 
         E_per_site = simulation.system.total_energy/simulation.system.nsites
         Teff = 1/np.log(1/E_per_site-1)
@@ -134,6 +139,9 @@ def simulate(options):
             Teff = 1/np.log(1/E_per_site-1)
             print "Time: %.2e Dt: %3.2e | Energy: %.2e Teff: %.4e\n\tElapsed: %.2e Pred: %.2e Etr: %.2e Eff: %3.2e"%( simulation.system.time, avg_dt, E_per_site, Teff, elapsed_time, predicted_total_walltime, wall_time_remaining, efficiency )
 
+        # after finishing, write final state
+        if options.output_prefix and options.write_trj:
+            simulation.save_state(options.output_prefix+'.final.spinsim.gz')
         print >>verbose_out, "Simulation Finished!"
         C.cleanup_spin_system(simulation.system.SD)
     except KeyboardInterrupt:
@@ -170,8 +178,23 @@ def main():
     write_group.add_option("--info_time",default=-1,type=float,help="Set how often simulation info and configurations are written for linear time (default:none)")
     write_group.add_option("--stops_per_decade",default=10,type=int,help="For logarithmic writing. Set how many times to write per decade of simulation time (default:none)")
     write_group.add_option("--write_trj",default=False,action="store_true",help="Specify whether or not to write a trajectory (default:False)")
-
     parser.add_option_group(write_group)
+
+    freezing_group=OptionGroup(parser,"Options for freezing spins","Options for freezing spins")
+    freezing_group.add_option('--save_frozen',dest='discard_frozen',default=True,action="store_false",
+                              help="Store frozen spins in trajectory. Always saved in 'start' and 'final' files. (default: false)")
+    freezing_group.add_option('--center_coord','--ccoord',dest='ccoord',default=None,type='string',
+                              help="Set a position to use for a cavity, wall or sandwich geometry")
+    freezing_group.add_option('--cradius','--frozen_radius',dest='frozen_radius',default=None,type=float,
+                              help="Set half size of frozen area")
+    freezing_group.add_option('--frozen_fraction',default=None,type=float,
+                              help="Set fraction of frozen particles in random freezing geometry")
+    freezing_group.add_option('--frozen_geometry',default=None,type='string',
+                              help="Set a frozen geometry to use. Available options: %s"%sorted( frozen_geometries.keys()))
+    freezing_group.add_option('--frozen_dimension',default=0,type=int,
+                              help="Set axis perpendicular to frozen slab if WALL or SANDWICH geometry (default: %default)")
+    parser.add_option_group(freezing_group)
+
     options, args = parser.parse_args()
  
     if options.seed is not None and options.seed < 1:
