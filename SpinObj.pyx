@@ -25,6 +25,7 @@ ModelRegistry[Plaquette.model_name] = Plaquette
 model_dict = {"FA":0, "East":1, "Plaquette":10}
 dynamics_dict = {"Metropolis":0, "Glauber":1}
 has_dual = ["Plaquette"]
+frozen_geometries = {None:0,"CAVITY":1,"WALL":2,"SANDWICH":3,"RANDOM":4}
 
 #definitions
 c_int = ct.c_int
@@ -109,8 +110,6 @@ class Simulation(object):
             print "In SpinObj.pyx, have not defined which spin values are non-excited"
             sys.exit(2)
 
-
-
         # set up system object
         self.system = SpinSys()
         self.system.nsites = nsites
@@ -183,7 +182,7 @@ class Simulation(object):
 
     def print_state(self):
         for key in sorted(self.__dict__):
-            if hasattr(self, key):
+            if hasattr(self, key) and key != "trj_file":
                 print key, getattr(self, key)
 
 class SpinSys(object):

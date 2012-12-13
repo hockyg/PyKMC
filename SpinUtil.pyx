@@ -2,6 +2,11 @@ import numpy as np
 cimport numpy as np
 from math import ceil
 import sys
+import gzip
+import cPickle as pickle
+
+def load_object( objectfile ):
+    return pickle.load(gzip.open(objectfile,'rb'))
 
 def tee_logfile( output_prefix ):
     from SpinObj import tee

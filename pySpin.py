@@ -9,6 +9,23 @@ import numpy as np
 libname = "pySpin.so"
 verbose_out = None
 
+def print_start_options(options,simulation):
+    print >>verbose_out,"Lattice parameters:"
+    print >>verbose_out,"\tmodel: %s"%(options.model)
+    print >>verbose_out,"\tlattice: %s"%(options.lattice)
+    print >>verbose_out,"\tlinear_size = %i (nsites = %i)"%(simulation.side_length,simulation.nsites)
+    print >>verbose_out
+
+    print >>verbose_out,"Simulation parameters:"
+    print >>verbose_out,"\tT = %f (beta = %f)"%(simulation.system.temp, 1./simulation.system.temp)
+    print >>verbose_out,"\tmaximum_time = %e"%(simulation.max_time)
+    print >>verbose_out,"\tdynamics_type: %s"%options.dynamics_type
+    print >>verbose_out,"\tseed: %i"%simulation.seed
+    if options.output_prefix:
+        print >>verbose_out,"\toutput_prefix: %s"%(options.output_prefix) 
+        print >>verbose_out,"\twriting_trajectory:",options.write_trj
+    print >>verbose_out
+
 def simulate(options):
     timer = Timer()
     model = ModelRegistry[options.model]
@@ -36,15 +53,35 @@ def simulate(options):
         seed=random.SystemRandom().randint(0,10000000)
     np.random.seed(seed)
 
-    if options.input is not None:
-        print "Reading input not currently supported"
-        sys.exit(1)
+    if options.restart is not None:
+        simulation = load_object(options.restart)
+        command_line_options = copy.copy(options)
+        options = simulation.final_options
+        if simulation.system.time == 0:
+            openmode='w' 
+        else:
+            openmode='a'
+        simulation.setup_output_files(mode=openmode)
+        print "Doing full restart with:"
+        np.random.seed(simulation.seed)
+        print_start_options(options,simulation)
+
+    elif options.input is not None:
+        simulation = load_object(options.input)
+        command_line_options = copy.copy(options)
+        options = simulation.final_options
+        
+        # Note, this will have a broken trj_file attribute
+        simulation.print_state()
+        #remove this later
+        simulation.setup_output_files()
     else:
         simulation = Simulation()
         simulation.initialize_new( options.lattice, options.model, options.dynamics_type,
                                    options.side_length, options.temperature, 
                                    options.max_time, seed=seed )
         simulation.command_line_options = options
+        simulation.seed = seed
 
         simulation.final_options = options
         if options.output_prefix:
@@ -52,23 +89,8 @@ def simulate(options):
 
         if options.info_time <= 0 or options.info_time > options.max_time:
             options.info_time = options.max_time
-
-        print >>verbose_out,"Lattice parameters:"
-        print >>verbose_out,"\tmodel: %s"%(options.model)
-        print >>verbose_out,"\tlattice: %s"%(options.lattice)
-        print >>verbose_out,"\tlinear_size = %i (nsites = %i)"%(simulation.side_length,simulation.nsites)
-        print >>verbose_out
-
-        print >>verbose_out,"Simulation parameters:"
-        print >>verbose_out,"\tT = %f (beta = %f)"%(simulation.system.temp, 1./simulation.system.temp)
-        print >>verbose_out,"\tmaximum_time = %e"%(simulation.max_time)
-        print >>verbose_out,"\tdynamics_type: %s"%options.dynamics_type
-        print >>verbose_out,"\tseed: %i"%seed
-        if options.output_prefix:
-            print >>verbose_out,"\toutput_prefix: %s"%(options.output_prefix) 
-            print >>verbose_out,"\twriting_trajectory:",options.write_trj
-        print >>verbose_out
         
+        print_start_options(options,simulation)
 
     try:
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())
@@ -110,6 +132,9 @@ def simulate(options):
         total_steps=0L
         last_time = simulation.stop_times[-1]
         for frame_idx,stop_time in enumerate(simulation.stop_times):
+            # last check for cases of restart to make sure time has been set back up properly
+            if simulation.system.time > simulation.stop_times[-1]: break
+
             return_val = C.run_kmc_spin(stop_time, simulation.system.SD)
             if return_val == -1: 
                 print "No more possible moves"
@@ -153,6 +178,8 @@ def main():
     parser = OptionParser()
     parser.add_option('-i','--input',default=None,
                       help="Read in stored configuration (default: use random)")
+    parser.add_option('-r','--restart',default=None,
+                      help="Read in stored configuration and do full restart (default: use random)")
     parser.add_option('-m', '--model', default="FA", 
                       help="Model to simulate (default: %default)" )
     parser.add_option('--dynamics_type', default="Metropolis",
