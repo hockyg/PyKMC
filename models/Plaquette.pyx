@@ -305,7 +305,7 @@ def PlaquetteEnergy(np.ndarray[np.int32_t,ndim=1] configuration,np.ndarray[np.in
         total_e = total_e + site_e
     return total_e
  
-def InitializeArrays( int nsites, int n_event_types ):
+def InitializeArrays( int nsites, int n_event_types, int nactive ):
     cdef np.ndarray events = np.zeros(nsites,dtype=ct.c_int)
     cdef np.ndarray event_types = np.zeros(nsites,dtype=ct.c_int)
     cdef np.ndarray events_by_type = np.zeros((n_event_types,nsites),dtype=ct.c_int)
@@ -315,6 +315,11 @@ def InitializeArrays( int nsites, int n_event_types ):
 #    cdef np.ndarray event_ref_rates = np.zeros(nsites,dtype=ct.c_double)
     cdef np.ndarray cumulative_rates = np.zeros(n_event_types,dtype=ct.c_double)
     cdef np.ndarray persistence_array= np.ones(nsites,dtype=ct.c_int)
+    # note: this will set activelist as 0-(nactive-1) which is only correct for nactive=nsites
+    #         hence this will be written over in the initialization step
+    cdef np.ndarray activelist = np.arange(nactive,dtype=ct.c_int)
+    # all sites will be set to active by default
+    cdef np.ndarray isactivelist = np.ones(nsites,dtype=ct.c_int)
     return {"events": events,
             "event_types": event_types,
             "events_by_type": events_by_type,
@@ -323,6 +328,8 @@ def InitializeArrays( int nsites, int n_event_types ):
             "event_rates": event_rates, 
             "cumulative_rates": cumulative_rates,
             "persistence_array": persistence_array,
+            "activelist": activelist,
+            "isactivelist": isactivelist,
            }
 
 def RandomConfigurationIdeal( int nsites, double temperature ):

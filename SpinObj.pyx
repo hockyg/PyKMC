@@ -90,8 +90,7 @@ class Simulation(object):
             print "In SpinObj.pyx, have not defined which spin values are non-excited"
             sys.exit(2)
 
-
-    def initialize_new(self,lattice_name,model_name,dynamics_type,linear_size,temperature,max_time,seed=0):
+    def initialize_new(self,lattice_name,model_name,dynamics_type,linear_size,temperature,max_time,seed=0,activelist=None):
         self.initial_configuration = None
         self.dual_configuration = None
         self.command_line_options = None
@@ -101,7 +100,6 @@ class Simulation(object):
         self.lattice_name = lattice_name
         self.model_name = model_name
 
-        #self.reset_for_continue(reset_time=True)
 
         self.max_time = max_time
 
@@ -111,6 +109,11 @@ class Simulation(object):
         lattice = model.LatticeRegistry[lattice_name](linear_size)
         nneighbors_per_site,nneighbors_update_per_site, neighbors, neighbors_update = lattice.Neighbors()
         self.nsites = nsites = lattice.nsites
+        if activelist is not None:
+            self.nactive = len(activelist)
+        else:
+            self.nactive = self.nsites
+
         self.n_event_types = n_event_types = lattice.n_event_types
         event_rates = lattice.EventRates(temperature,dynamics_dict[dynamics_type])
 
@@ -126,6 +129,7 @@ class Simulation(object):
         # set up system object
         self.system = SpinSys()
         self.system.nsites = nsites
+        self.system.nactive = self.nactive
         self.system.nneighbors_per_site = nneighbors_per_site
         self.system.nneighbors_update_per_site = nneighbors_update_per_site
         self.system.neighbors = neighbors
@@ -144,11 +148,21 @@ class Simulation(object):
         self.system.prev_configuration = self.prev_configuration
         self.system.dual_configuration = self.dual_configuration
 
-        sys_arrays = ModelRegistry[self.model_name].InitializeArrays( self.nsites, self.n_event_types )
+        sys_arrays = ModelRegistry[self.model_name].InitializeArrays( self.nsites, self.n_event_types, self.nactive )
         sys_arrays["event_rates"] = np.array( event_rates, dtype=c_double )
         for key in sys_arrays.keys():
             setattr( self.system, key, sys_arrays[key] )
         self.set_initial_nonexcited()
+
+        cdef int i
+        # overwrite activelist if it is already specified. then use activelist to set isactivelist
+        if activelist is not None:
+            # first clear isactivelist by making everything inatctive
+            for i in range(self.nsites):
+                self.system.isactivelist[i] = 0
+            for i in range(self.nactive):
+                self.system.activelist[i] = activelist[i]
+                self.system.isactivelist[self.system.activelist[i]] = 1
 
     def reset_for_continue(self,reset_time=True):
         self.set_host_info()
@@ -166,6 +180,23 @@ class Simulation(object):
         self.prev_configuration = self.configuration.copy()
         self.initial_configuration = self.configuration.copy()
         self.set_initial_nonexcited()
+
+    def freeze_random(self, frozen_fraction):
+        frac_active = 1 - frozen_fraction
+        nactive = int(np.round( frac_active*self.nsites ))
+        activelist = np.arange(self.nsites,dtype=c_int)
+        np.random.shuffle( activelist )
+        activelist = activelist[:nactive]
+        activelist.sort()
+        self.set_active(activelist)
+    
+    def set_active(self, activelist):
+        nactive = len(activelist)
+        isactivelist = np.zeros(self.nsites,dtype=c_int)
+        isactivelist[activelist] = 1
+        self.nactive = self.system.nactive = nactive
+        self.system.activelist = activelist
+        self.system.isactivelist = isactivelist
 
     def write_frame(self):
         pickle.dump(self.system.get_frame_state(), self.trj_file )
@@ -278,8 +309,11 @@ class SimData(ct.Structure):
     _fields_=[
         #lattice stuff
                 ("nsites",c_int),
+                ("nactive",c_int),
                 ("nneighbors_per_site",c_int), 
                 ("nneighbors_update_per_site",c_int), 
+                ("activelist",c_void_p),
+                ("isactivelist",c_void_p),
                 ("neighbors",c_void_p),
                 ("neighbors_update",c_void_p),
         # simulation stuff

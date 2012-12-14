@@ -17,6 +17,17 @@ reset_arguments = ("max_time","seed","linear_time","info_time",
 #other possible reset arguments:
 #    temperature -- this will put the system out of equilibrium and will require resetting a great deal of things like rates 
 
+def set_up_frozen( simulation, options ):
+    if options.frozen_geometry is None: 
+        pass
+    elif options.frozen_geometry.upper() == "RANDOM":
+        simulation.freeze_random(options.frozen_fraction)
+    else:
+        model = ModelRegistry[simulation.model_name]
+        lattice = model.LatticeRegistry[simulation.lattice_name](simulation.linear_size)
+        sys.exit()
+       
+
 def print_start_options(options,simulation):
     print >>verbose_out,"Lattice parameters:"
     print >>verbose_out,"\tmodel: %s"%(options.model)
@@ -95,11 +106,9 @@ def simulate(options):
             setattr(simulation.final_options,key,getattr(options,key))
         options = simulation.final_options
         simulation.setup_output_files()
-
-#        command_line_options = copy.copy(options)
-#        options = simulation.final_options
-
         np.random.seed(simulation.seed)
+
+        set_up_frozen( simulation, options )
         
     else:
         simulation = Simulation()
@@ -109,6 +118,8 @@ def simulate(options):
         simulation.command_line_options = options
         simulation.seed = seed
 
+        set_up_frozen( simulation, options )
+
         simulation.final_options = options
         if options.output_prefix:
             simulation.setup_output_files()
@@ -116,7 +127,6 @@ def simulate(options):
     if options.info_time <= 0 or options.info_time > options.max_time:
         options.info_time = options.max_time
         
-
     try:
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())
         C.setup_spin_system(simulation.system.SD)

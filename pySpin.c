@@ -69,9 +69,10 @@ int switch_state( int state, int model_number ){
 
 
 int all_events( struct SimData *SD){
-    int i,j;
+    int i,j,activeidx;
     int n_possible_events = 0;
-    for(i=0;i<SD->nsites;i++){
+    for(activeidx=0;activeidx<SD->nactive;activeidx++){
+        i = SD->activelist[activeidx];
         SD->events[i] = 0;
         SD->event_types[i] = -1;
         SD->event_refs[i] = -1;
@@ -84,7 +85,8 @@ int all_events( struct SimData *SD){
         SD->cumulative_rates[i] = 0.0;
     }
 
-    for(i=0;i<SD->nsites;i++){
+    for(activeidx=0;activeidx<SD->nactive;activeidx++){
+        i = SD->activelist[activeidx];
         int event_type = get_event_type(i,SD);
         SD->events[i] = switch_state(SD->configuration[i],SD->model_number);
         SD->event_types[i] = event_type;
@@ -144,6 +146,7 @@ int change_event_type( int i, int old_event_type, int new_event_type, struct Sim
    return 0;
 }
 
+// note this function should only be called if move_site is active
 int update_events_i( int move_site, struct SimData *SD){
     int i,j,k,ii,state_i,state_ii;
     //int n_possible_events = 0;
@@ -164,30 +167,36 @@ int update_events_i( int move_site, struct SimData *SD){
     // now do it for neighbors of this site
     for(j=0;j<nneighbors_per_site;j++){
         i = SD->neighbors[nneighbors_per_site*move_site+j];
-        state_i = SD->configuration[i];
-        old_event_type = SD->event_types[i];
-        new_event_type = get_event_type(i,SD);
-        SD->events[i] = switch_state( state_i, model_number );
-        change_event_type( i, old_event_type, new_event_type, SD );
+        if(SD->isactivelist[i]){
+            state_i = SD->configuration[i];
+            old_event_type = SD->event_types[i];
+            new_event_type = get_event_type(i,SD);
+            SD->events[i] = switch_state( state_i, model_number );
+            change_event_type( i, old_event_type, new_event_type, SD );
+        }
     }
 
     // now do it for neighbors this site affects
     for(j=0;j<nneighbors_update_per_site;j++){
         i = SD->neighbors_update[nneighbors_update_per_site*move_site+j];
-        state_i = SD->configuration[i];
-        old_event_type = SD->event_types[i];
-        new_event_type = get_event_type(i,SD);
-        SD->events[i] = switch_state( state_i, model_number );
-        change_event_type( i, old_event_type, new_event_type, SD );
+        if(SD->isactivelist[i]){
+            state_i = SD->configuration[i];
+            old_event_type = SD->event_types[i];
+            new_event_type = get_event_type(i,SD);
+            SD->events[i] = switch_state( state_i, model_number );
+            change_event_type( i, old_event_type, new_event_type, SD );
+        }
         // and update neighbors of these sites as well
         for(k=0;k<nneighbors_per_site;k++){
             ii = SD->neighbors[nneighbors_per_site*i+k];
             if( ii == move_site ) continue;
-            state_ii = SD->configuration[ii];
-            old_event_type = SD->event_types[ii];
-            new_event_type = get_event_type(ii,SD);
-            SD->events[ii] = switch_state( state_ii, model_number );
-            change_event_type( ii, old_event_type, new_event_type, SD );
+            if(SD->isactivelist[ii]){
+                state_ii = SD->configuration[ii];
+                old_event_type = SD->event_types[ii];
+                new_event_type = get_event_type(ii,SD);
+                SD->events[ii] = switch_state( state_ii, model_number );
+                change_event_type( ii, old_event_type, new_event_type, SD );
+            }
         }
     }
     return 0;
