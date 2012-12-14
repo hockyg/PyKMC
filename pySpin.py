@@ -9,6 +9,14 @@ import numpy as np
 libname = "pySpin.so"
 verbose_out = None
 
+reset_arguments = ("max_time","seed","linear_time","info_time",
+                   "stops_per_decade", "write_trj", "output_prefix",
+                   "discard_frozen", "ccoord", "frozen_radius", "frozen_fraction",
+                   "frozen_geometry","frozen_dimension",
+                  )
+#other possible reset arguments:
+#    temperature -- this will put the system out of equilibrium and will require resetting a great deal of things like rates 
+
 def print_start_options(options,simulation):
     print >>verbose_out,"Lattice parameters:"
     print >>verbose_out,"\tmodel: %s"%(options.model)
@@ -25,6 +33,15 @@ def print_start_options(options,simulation):
         print >>verbose_out,"\toutput_prefix: %s"%(options.output_prefix) 
         print >>verbose_out,"\twriting_trajectory:",options.write_trj
     print >>verbose_out
+    if options.frozen_geometry is not None:
+        print >>verbose_out,"Frozen parameters"
+        print >>verbose_out,"\tfrozen geometry: %s"%options.frozen_geometry
+        print >>verbose_out,"\tsave_frozen: %s"%(not options.discard_frozen)
+        print >>verbose_out,"\tcenter coordinate: %s"%options.ccoord    
+        print >>verbose_out,"\tfrozen dimension: %s"%options.frozen_dimension
+        print >>verbose_out,"\tfrozen radius: %s"%options.frozen_radius
+        print >>verbose_out,"\tfrozen fraction: %s"%options.frozen_fraction
+        print >>verbose_out
 
 def simulate(options):
     timer = Timer()
@@ -55,6 +72,7 @@ def simulate(options):
 
     if options.restart is not None:
         simulation = load_object(options.restart)
+        simulation.print_state()
         command_line_options = copy.copy(options)
         options = simulation.final_options
         if simulation.system.time == 0:
@@ -64,17 +82,25 @@ def simulate(options):
         simulation.setup_output_files(mode=openmode)
         print "Doing full restart with:"
         np.random.seed(simulation.seed)
-        print_start_options(options,simulation)
 
     elif options.input is not None:
         simulation = load_object(options.input)
-        command_line_options = copy.copy(options)
+        simulation.reset_for_continue()
+
+        simulation.command_line_options = copy.copy(options)
+        # now resetting command line options for continue
+
+        for key in sorted(reset_arguments):
+            print "Warning: resetting value of",key,"to command line value",getattr(options,key)
+            setattr(simulation.final_options,key,getattr(options,key))
         options = simulation.final_options
-        
-        # Note, this will have a broken trj_file attribute
-        simulation.print_state()
-        #remove this later
         simulation.setup_output_files()
+
+#        command_line_options = copy.copy(options)
+#        options = simulation.final_options
+
+        np.random.seed(simulation.seed)
+        
     else:
         simulation = Simulation()
         simulation.initialize_new( options.lattice, options.model, options.dynamics_type,
@@ -87,10 +113,9 @@ def simulate(options):
         if options.output_prefix:
             simulation.setup_output_files()
 
-        if options.info_time <= 0 or options.info_time > options.max_time:
-            options.info_time = options.max_time
+    if options.info_time <= 0 or options.info_time > options.max_time:
+        options.info_time = options.max_time
         
-        print_start_options(options,simulation)
 
     try:
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())

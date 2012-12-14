@@ -69,7 +69,27 @@ class NullDevice():
 
 class Simulation(object):
     def __init__(self):
-        pass
+        self.set_host_info()
+
+    def set_host_info(self):
+        import socket
+        self.creation_date = datetime.datetime.now()
+        self.created_on = socket.gethostname()
+        self.creation_host_system_info = os.uname()
+
+    # count initial non-excited spins, and also set persistence array
+    def set_initial_nonexcited(self):
+        self.system.persistence_array[:] = 1
+        if self.model_name in ["FA","East"]:
+            self.initial_nonexcited = (self.initial_configuration<0.1).sum() # zeros
+            self.system.persistence_array[self.configuration == 0] = -1 # down spins are -1, up spins are 1
+        elif self.model_name in ["Plaquette"]:
+            self.initial_nonexcited = (self.initial_configuration>0.1).sum() # ones
+            self.system.persistence_array[self.dual_configuration == 0] = -1 # down spins are -1, up spins are 1
+        else:
+            print "In SpinObj.pyx, have not defined which spin values are non-excited"
+            sys.exit(2)
+
 
     def initialize_new(self,lattice_name,model_name,dynamics_type,side_length,temperature,max_time,seed=0):
         self.initial_configuration = None
@@ -102,13 +122,6 @@ class Simulation(object):
 
         self.initial_configuration = self.configuration.copy()
         self.prev_configuration = self.configuration.copy()
-        if self.model_name in ["FA","East"]:
-            self.initial_nonexcited = (self.initial_configuration<0.1).sum() # zeros
-        elif self.model_name in ["Plaquette"]:
-            self.initial_nonexcited = (self.initial_configuration>0.1).sum() # ones
-        else:
-            print "In SpinObj.pyx, have not defined which spin values are non-excited"
-            sys.exit(2)
 
         # set up system object
         self.system = SpinSys()
@@ -135,27 +148,27 @@ class Simulation(object):
         sys_arrays["event_rates"] = np.array( event_rates, dtype=c_double )
         for key in sys_arrays.keys():
             setattr( self.system, key, sys_arrays[key] )
+        self.set_initial_nonexcited()
 
-        self.system.persistence_array[self.configuration == 0] = -1 # down spins are -1, up spins are 1
+    def reset_for_continue(self,reset_time=True):
+        self.set_host_info()
+        self.stop_times = None
+        if reset_time:
+            self.system.current_step = 0
+            self.system.time = 0
 
-#    def reset_for_continue(self,reset_time=True):
-#        self.steps_to_take = []
-#
-#        if reset_time:
-#            self.frame_step = 0
-#            self.frame_time = 0
-#
-#        self.frame_num = 0
-#
-#        self.trj_file = None
-#        self.start_file = None
-#        self.restart_file = None
-#        self.restarted_from = None
+        self.trj_file_name = None
+        self.trj_file = None
+
+        self.prev_configuration = self.configuration.copy()
+        self.initial_configuration = self.configuration.copy()
+        self.set_initial_nonexcited()
 
     def write_frame(self):
         pickle.dump(self.system.get_frame_state(), self.trj_file )
 
     def setup_output_files(self,mode="w",compresslevel=3):
+        if self.final_options.output_prefix is None: return
         if self.final_options.write_trj > 0:
             self.trj_file_name = self.final_options.output_prefix+'.spintrj.gz'
             self.trj_file = gzip.open(self.trj_file_name,mode+'b',compresslevel)
@@ -190,6 +203,7 @@ class SpinSys(object):
         import socket
         self.SD = SimData()
         self.SD_p = ct.pointer(self.SD)
+        # Note, these are automatically reset every time a new simulation is started, even in restart mode
         self.creation_date = datetime.datetime.now()
         self.created_on = socket.gethostname()
         self.creation_host_system_info = os.uname()
@@ -199,17 +213,19 @@ class SpinSys(object):
                                      "events_per_type", "event_refs",
                                      "event_rates", "cumulative_rates",
                                      ]
+        self.save_fields = ["creation_date","creation_host_system_info","created_on"]
 
     def get_frame_state(self):
         state = { }
-        for key in SimDataFields:
+        for key in SimDataFields.keys()+self.save_fields:
             if hasattr(self, key) and key not in self.frame_exception_list:
                 state[key] = getattr(self, key)
 
         return state
 
     def print_state(self):
-        for key in sorted(SimDataFields):
+        for key in sorted(self.__dict__):
+        #for key in sorted(SimDataFields):
             if hasattr(self, key):
                 print key, getattr(self, key)
 
