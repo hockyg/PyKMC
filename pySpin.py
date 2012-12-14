@@ -21,7 +21,7 @@ def print_start_options(options,simulation):
     print >>verbose_out,"Lattice parameters:"
     print >>verbose_out,"\tmodel: %s"%(options.model)
     print >>verbose_out,"\tlattice: %s"%(options.lattice)
-    print >>verbose_out,"\tlinear_size = %i (nsites = %i)"%(simulation.side_length,simulation.nsites)
+    print >>verbose_out,"\tlinear_size = %i (nsites = %i)"%(simulation.linear_size,simulation.nsites)
     print >>verbose_out
 
     print >>verbose_out,"Simulation parameters:"
@@ -104,7 +104,7 @@ def simulate(options):
     else:
         simulation = Simulation()
         simulation.initialize_new( options.lattice, options.model, options.dynamics_type,
-                                   options.side_length, options.temperature, 
+                                   options.linear_size, options.temperature, 
                                    options.max_time, seed=seed )
         simulation.command_line_options = options
         simulation.seed = seed
@@ -213,7 +213,7 @@ def main():
                       help="Model to simulate (default: %default)" )
     parser.add_option('-T', '--temperature', default=1.0, type=float,
                       help="Temperature to use (default: %default)" )
-    parser.add_option('-L', '--side_length',dest="side_length",default=10, type=int,
+    parser.add_option('-L', '--linear_size',dest="linear_size",default=10, type=int,
                       help="Side length of linear, square or cubic lattice to simulate. Total number of sites for other lattices, if ever implemented (default: %default)" )
 
 #    parser.add_option('-s', '--max_steps', default=100, type=int,

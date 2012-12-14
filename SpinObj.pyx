@@ -91,12 +91,12 @@ class Simulation(object):
             sys.exit(2)
 
 
-    def initialize_new(self,lattice_name,model_name,dynamics_type,side_length,temperature,max_time,seed=0):
+    def initialize_new(self,lattice_name,model_name,dynamics_type,linear_size,temperature,max_time,seed=0):
         self.initial_configuration = None
         self.dual_configuration = None
         self.command_line_options = None
         self.final_options = None
-        self.side_length = side_length
+        self.linear_size = linear_size
 
         self.lattice_name = lattice_name
         self.model_name = model_name
@@ -108,7 +108,7 @@ class Simulation(object):
         # set up lattice
         model = ModelRegistry[self.model_name]
 
-        lattice = model.LatticeRegistry[lattice_name](side_length)
+        lattice = model.LatticeRegistry[lattice_name](linear_size)
         nneighbors_per_site,nneighbors_update_per_site, neighbors, neighbors_update = lattice.Neighbors()
         self.nsites = nsites = lattice.nsites
         self.n_event_types = n_event_types = lattice.n_event_types
@@ -160,6 +160,9 @@ class Simulation(object):
         self.trj_file_name = None
         self.trj_file = None
 
+        #This is a good place to check that configuration, initial configuration, and dual_configuration all work as expected. for example, the next line works to make sure  the configuration and dual configuration match, but not the initial configuration and dual configuration (unless restarting from a state where that was true)
+        #print "tpm test 1: (expect 0)",Plaquette.test_triangle_dual( self.configuration.reshape((self.linear_size,-1)), self.dual_configuration.reshape((self.linear_size,-1)), self.linear_size )
+        #print "tpm test 2: (expect >0)",Plaquette.test_triangle_dual( self.initial_configuration.reshape((self.linear_size,-1)), self.dual_configuration.reshape((self.linear_size,-1)), self.linear_size )
         self.prev_configuration = self.configuration.copy()
         self.initial_configuration = self.configuration.copy()
         self.set_initial_nonexcited()
