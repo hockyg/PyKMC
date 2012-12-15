@@ -19,13 +19,33 @@ reset_arguments = ("max_time","seed","linear_time","info_time",
 
 def set_up_frozen( simulation, options ):
     if options.frozen_geometry is None: 
-        pass
+        return 0
     elif options.frozen_geometry.upper() == "RANDOM":
         simulation.freeze_random(options.frozen_fraction)
     else:
         model = ModelRegistry[simulation.model_name]
         lattice = model.LatticeRegistry[simulation.lattice_name](simulation.linear_size)
-        sys.exit()
+        if options.frozen_geometry.upper() == "CAVITY":
+            cavity_center = np.array( options.ccoord.split(','),dtype=int)
+            cavity_radius = int(options.frozen_radius)
+            simulation.cavity_center = cavity_center
+            simulation.cavity_radius = cavity_radius
+            activelist = lattice.CavityActivelist( cavity_center, cavity_radius )
+        elif options.frozen_geometry.upper() == "WALL":
+            wall_center = np.array( options.ccoord.split(','),dtype=int)[options.frozen_dimension]
+            wall_radius = int(options.frozen_radius)
+            simulation.wall_center = wall_center
+            simulation.wall_radius = wall_radius
+            simulation.frozen_dimension = options.frozen_dimension
+            activelist = lattice.WallActivelist( wall_center, options.frozen_dimension, wall_radius )
+        elif options.frozen_geometry.upper() == "SANDWICH":
+            sandwich_center = np.array( options.ccoord.split(','),dtype=int)[options.frozen_dimension]
+            sandwich_radius = int(options.frozen_radius)
+            simulation.sandwich_center = sandwich_center
+            simulation.sandwich_radius = sandwich_radius
+            simulation.frozen_dimension = options.frozen_dimension
+            activelist = lattice.SandwichActivelist( sandwich_center, options.frozen_dimension, sandwich_radius )
+        simulation.set_active(activelist)
        
 
 def print_start_options(options,simulation):
@@ -176,6 +196,10 @@ def simulate(options):
                 break
             if options.output_prefix and options.write_trj:
                 simulation.write_frame()
+
+            #tmp_cfg = copy.copy(simulation.system.configuration)
+            #tmp_cfg[simulation.system.activelist]*=5
+            #print tmp_cfg.reshape((8,8))
 
             elapsed_time = stop_time - prev_stop_time
             avg_dt = elapsed_time/simulation.system.SD.current_step

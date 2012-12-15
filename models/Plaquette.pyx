@@ -237,6 +237,59 @@ class SquareClass(object):
     def row_col_to_idx(self, int row, int col):
         return row*self.side_length+col
 
+    def SandwichActivelist( self, int sandwich_center, int sandwich_dimension, int frozen_radius ):
+        cdef int sandwich_area = (2*frozen_radius+1)*self.side_length
+        cdef int nactive = sandwich_area
+        cdef np.ndarray[np.int32_t,ndim=1] activelist = np.zeros(nactive,dtype=ct.c_int)
+        cdef int i
+        count = 0
+        # note, this waill automatically have activelist sorted
+        for i in range(self.side_length):
+            for j in range(self.side_length):
+                siteidx = i*self.side_length+j
+                if( sandwich_dimension == 0 and abs(i-sandwich_center)<=frozen_radius or
+                    sandwich_dimension == 1 and abs(j-sandwich_center)<=frozen_radius ):
+                    activelist[count] = siteidx
+                    count = count + 1
+        print activelist
+        return activelist
+
+    def WallActivelist( self, int wall_center, int wall_dimension, int frozen_radius ):
+        cdef int wall_area = (2*frozen_radius+1)*self.side_length
+        cdef int nactive = self.nsites - wall_area
+        cdef np.ndarray[np.int32_t,ndim=1] activelist = np.zeros(nactive,dtype=ct.c_int)
+        cdef int i
+        count = 0
+        # note, this waill automatically have activelist sorted
+        for i in range(self.side_length):
+            for j in range(self.side_length):
+                siteidx = i*self.side_length+j
+                if( wall_dimension == 0 and abs(i-wall_center)>frozen_radius or
+                    wall_dimension == 1 and abs(j-wall_center)>frozen_radius ):
+                    activelist[count] = siteidx
+                    count = count + 1
+        print activelist
+        return activelist
+        
+
+    def CavityActivelist( self, cavity_center, int frozen_radius ):
+        if (not len(cavity_center)==2): raise AssertionError("Must specify a cavity center of dimension 2 for this model")
+        cdef int i,j,minx,maxx,row,col,spinidx,count
+        cdef int area = (2*int(frozen_radius)+1)**2
+        cdef np.ndarray[np.int32_t,ndim=1] activelist = np.zeros(area,dtype=ct.c_int)
+        minx = -int(frozen_radius)
+        maxx = -minx+1
+        count = 0
+        for i in range(minx,maxx):
+            row = (cavity_center[0]+i)%self.side_length
+            for j in range(minx,maxx):
+                col = (cavity_center[1]+j)%self.side_length
+                spinidx = row*self.side_length+col
+                activelist[count]=spinidx
+                count=count+1
+        np.sort(activelist)
+        return activelist
+
     def RandomConfiguration( self, double temperature ):
         """ Generates a random configuration (almost) commensurate with the temperature
            
