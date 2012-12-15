@@ -72,6 +72,7 @@ def print_start_options(options,simulation):
         print >>verbose_out,"\tfrozen dimension: %s"%options.frozen_dimension
         print >>verbose_out,"\tfrozen radius: %s"%options.frozen_radius
         print >>verbose_out,"\tfrozen fraction: %s"%options.frozen_fraction
+        print >>verbose_out,"\tNum active: %i (frac: %f)"%(simulation.nactive, float(simulation.nactive)/float(simulation.nsites))
         print >>verbose_out
 
 def simulate(options):
@@ -125,6 +126,7 @@ def simulate(options):
             print "Warning: resetting value of",key,"to command line value",getattr(options,key)
             setattr(simulation.final_options,key,getattr(options,key))
         options = simulation.final_options
+        simulation.seed = simulation.system.seed = options.seed
         simulation.setup_output_files()
         np.random.seed(simulation.seed)
 
@@ -146,6 +148,8 @@ def simulate(options):
 
     if options.info_time <= 0 or options.info_time > options.max_time:
         options.info_time = options.max_time
+
+    print_start_options(simulation.final_options,simulation)
         
     try:
         print >>verbose_out, textline_box("Running simulation: (setup time = %f )"%timer.gettime())

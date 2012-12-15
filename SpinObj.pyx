@@ -199,7 +199,7 @@ class Simulation(object):
         self.system.isactivelist = isactivelist
 
     def write_frame(self):
-        pickle.dump(self.system.get_frame_state(), self.trj_file )
+        pickle.dump(self.system.get_frame_state(only_active=True), self.trj_file )
 
     def setup_output_files(self,mode="w",compresslevel=3):
         if self.final_options.output_prefix is None: return
@@ -249,11 +249,15 @@ class SpinSys(object):
                                      ]
         self.save_fields = ["creation_date","creation_host_system_info","created_on"]
 
-    def get_frame_state(self):
+    def get_frame_state(self,only_active=False):
         state = { }
         for key in SimDataFields.keys()+self.save_fields:
             if hasattr(self, key) and key not in self.frame_exception_list:
-                state[key] = getattr(self, key)
+                if only_active and getattr(self,"nactive")<getattr(self,"nsites") and key.find("configuration")>-1:
+                    tmp_cfg = getattr(self,key)[getattr(self,"activelist")]
+                    state[key] = tmp_cfg
+                else:
+                    state[key] = getattr(self, key)
 
         return state
 
