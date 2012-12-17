@@ -7,28 +7,33 @@ import gzip
 from SpinObj import *
 from PyKMC.analyze import util
 
-maxtouse = 500
-maxframe=1000
+maxtouse = 200
+#maxframe=None
+maxframe=100
 nsamples = len(sys.argv[1:])
 coft_list = []
 times = []
 time_array = None
 for fileidx, filename in enumerate(sys.argv[1:]):
-    times, trajectory = util.get_spintrj(filename,maxframe=maxframe)
+    times, stop_times, trajectory = util.get_spintrj(filename,maxframe=maxframe)
     frame_intervals = util.logframes(len(times))
     nframes = trajectory.shape[0]
-    dt = times[1]-times[0]
+    dt = stop_times[1]-stop_times[0]
     counts = np.zeros(len(frame_intervals))
     coft_array = np.zeros((len(frame_intervals),maxtouse))
     time_array = frame_intervals*dt
 
+    # time average spin values
+    site_values = trajectory.mean(axis=0)
+    print "# %s: c0 = %f"%(filename,(site_values*site_values).mean())
+
     means = np.zeros(len(frame_intervals))
     for idx0,frame_interval in enumerate(frame_intervals):
-        cfg0 = trajectory[idx0,:] 
         starting_frames = util.get_starting_frames( nframes, frame_interval, maxtouse=maxtouse )
-        for idx1,starting_frame in enumerate(starting_frames):
+        for starting_frame in starting_frames:
             if counts[idx0] >= maxtouse: continue
-            cfg1 = trajectory[idx1,:] 
+            cfg0 = trajectory[starting_frame,:] 
+            cfg1 = trajectory[starting_frame+frame_interval,:] 
             coft = (cfg0*cfg1).mean()
             coft_array[idx0,counts[idx0]] = coft
             counts[idx0]+=1
@@ -37,6 +42,9 @@ for fileidx, filename in enumerate(sys.argv[1:]):
     coft_list.append(means)
 
 coft_all = np.array(coft_list)
+
+#longvalue = 
+
 #print coft_all.shape
 final_avg = coft_all.mean(axis=0)
 output = np.append(time_array.reshape(-1,1),final_avg.reshape(-1,1),axis=1)

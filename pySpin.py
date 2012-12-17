@@ -126,7 +126,7 @@ def simulate(options):
             print "Warning: resetting value of",key,"to command line value",getattr(options,key)
             setattr(simulation.final_options,key,getattr(options,key))
         options = simulation.final_options
-        simulation.seed = simulation.system.seed = options.seed
+        if options.seed is not None: simulation.seed = simulation.system.seed = options.seed
         simulation.setup_output_files()
         np.random.seed(simulation.seed)
 
@@ -194,16 +194,22 @@ def simulate(options):
             # last check for cases of restart to make sure time has been set back up properly
             if simulation.system.time > simulation.stop_times[-1]: break
 
-            return_val = C.run_kmc_spin(stop_time, simulation.system.SD)
-            if return_val == -1: 
-                print "No more possible moves"
-                break
+           # tmp_cfg = copy.copy(simulation.system.configuration)
+           # tmp_cfg[simulation.system.activelist]*=5
+           # print tmp_cfg.reshape((12,12))[:5,:5]
+           # print simulation.system.dual_configuration.reshape((12,12))[:4,:4]
+      
+            #print simulation.system.dual_configuration.reshape((12,12))
+            simulation.system.stop_time = stop_time
+            if simulation.system.time > stop_time:
+                pass
+            else:
+                return_val = C.run_kmc_spin(stop_time, simulation.system.SD)
+                if return_val == -1: 
+                    print "No more possible moves"
+                    break
             if options.output_prefix and options.write_trj:
                 simulation.write_frame()
-
-            #tmp_cfg = copy.copy(simulation.system.configuration)
-            #tmp_cfg[simulation.system.activelist]*=5
-            #print tmp_cfg.reshape((8,8))
 
             elapsed_time = stop_time - prev_stop_time
             avg_dt = elapsed_time/simulation.system.SD.current_step
@@ -275,7 +281,7 @@ def main():
                               help="Store frozen spins in trajectory. Always saved in 'start' and 'final' files. (default: false)")
     freezing_group.add_option('--center_coord','--ccoord',dest='ccoord',default=None,type='string',
                               help="Set a position to use for a cavity, wall or sandwich geometry")
-    freezing_group.add_option('--cradius','--frozen_radius',dest='frozen_radius',default=None,type=float,
+    freezing_group.add_option('--cradius','--frozen_radius',dest='frozen_radius',default=None,type=int,
                               help="Set half size of frozen area")
     freezing_group.add_option('--frozen_fraction',default=None,type=float,
                               help="Set fraction of frozen particles in random freezing geometry")

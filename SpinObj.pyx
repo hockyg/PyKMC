@@ -242,12 +242,13 @@ class SpinSys(object):
         self.created_on = socket.gethostname()
         self.creation_host_system_info = os.uname()
         self.exception_list = []
+        self.stop_time = 0.0
         # exceptions for saving a single frame/configuration
         self.frame_exception_list = ["neighbors", "neighbors_update",                                                    "events", "event_types", "events_by_type",
                                      "events_per_type", "event_refs",
                                      "event_rates", "cumulative_rates",
                                      ]
-        self.save_fields = ["creation_date","creation_host_system_info","created_on"]
+        self.save_fields = ["creation_date","creation_host_system_info","created_on", "stop_time"]
 
     def get_frame_state(self,only_active=False):
         state = { }

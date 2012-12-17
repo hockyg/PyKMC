@@ -30,6 +30,7 @@ def logframes(total_steps,steps_per_decade=10):
 def get_spintrj( spintrjfile, cfgname="configuration",maxframe=None ):
     fh = gzip.GzipFile(spintrjfile,'r')
     times = []
+    stop_times = []
     trajectory = []
 
     try:
@@ -38,8 +39,10 @@ def get_spintrj( spintrjfile, cfgname="configuration",maxframe=None ):
             if (maxframe is not None and count>maxframe): break
             simdata = pickle.load(fh)
             sim_time = simdata["time"]
+            stop_time = simdata["stop_time"]
             configuration = simdata[cfgname]
             times.append(sim_time)
+            stop_times.append(stop_time)
             trajectory.append(configuration)
 
             count = count+1
@@ -47,7 +50,9 @@ def get_spintrj( spintrjfile, cfgname="configuration",maxframe=None ):
         pass
     trajectory_array = np.array(trajectory,dtype=int)
     times_array = np.array(times)
-    return times_array, trajectory_array
+    stop_times_array = np.array(stop_times)
+
+    return times_array, stop_times_array, trajectory_array
 
 if __name__ == "__main__":
     get_spintrj(sys.argv[1])
