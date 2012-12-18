@@ -8,14 +8,18 @@ from SpinObj import *
 from PyKMC.analyze import util
 
 maxtouse = 200
-#maxframe=None
-maxframe=100
+maxframe=None
+#maxframe=100
 nsamples = len(sys.argv[1:])
 coft_list = []
 times = []
 time_array = None
+c0_list = []
 for fileidx, filename in enumerate(sys.argv[1:]):
-    times, stop_times, trajectory = util.get_spintrj(filename,maxframe=maxframe)
+    try:
+        times, stop_times, trajectory = util.get_spintrj(filename,maxframe=maxframe)
+    except IOError:
+        continue
     frame_intervals = util.logframes(len(times))
     nframes = trajectory.shape[0]
     dt = stop_times[1]-stop_times[0]
@@ -25,7 +29,9 @@ for fileidx, filename in enumerate(sys.argv[1:]):
 
     # time average spin values
     site_values = trajectory.mean(axis=0)
-    print "# %s: c0 = %f"%(filename,(site_values*site_values).mean())
+    c0 = (site_values*site_values).mean()
+    c0_list.append(c0)
+    print "# %s: c0 = %f"%(filename,c0)
 
     means = np.zeros(len(frame_intervals))
     for idx0,frame_interval in enumerate(frame_intervals):
@@ -41,7 +47,9 @@ for fileidx, filename in enumerate(sys.argv[1:]):
 
     coft_list.append(means)
 
+c0_array = np.array(c0_list)
 coft_all = np.array(coft_list)
+print "#Avg: %f"%(c0_array.mean())
 
 #longvalue = 
 

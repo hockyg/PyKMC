@@ -305,6 +305,8 @@ int run_kmc_spin(double stop_time,struct SimData *SD){
     double elapsed_time = 0;
     double max_time = stop_time - SD->time;
     double dt = 0;
+ 
+    //print_all_event_types( SD );
 
     while(elapsed_time<max_time){
         if(n_possible_events<1){
@@ -328,8 +330,16 @@ int run_kmc_spin(double stop_time,struct SimData *SD){
         int rand_event = get_irandomx( 0, SD->events_per_type[event_type_i]-1 );
 
         int move_site = SD->events_by_type[event_type_i*SD->nsites+rand_event];
+/*
+        if(event_type_i==4) {
+            printf("Rare event. Flipping site %i\n",move_site);
+            printf("State %i event %i\n",SD->configuration[move_site],SD->events[move_site]);
+            print_all_event_types( SD );
+        }
+*/
         update_configuration( move_site, SD );
         update_events_i( move_site, SD );
+        //    if(event_type_i==4) printf("State %i event %i\n",SD->configuration[move_site],SD->events[move_site]);
         step++;
     }
     sum_rates(SD);

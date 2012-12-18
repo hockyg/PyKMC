@@ -194,9 +194,13 @@ def simulate(options):
             # last check for cases of restart to make sure time has been set back up properly
             if simulation.system.time > simulation.stop_times[-1]: break
 
-           # tmp_cfg = copy.copy(simulation.system.configuration)
-           # tmp_cfg[simulation.system.activelist]*=5
-           # print tmp_cfg.reshape((12,12))[:5,:5]
+#            tmp_cfg = copy.copy(simulation.system.configuration)
+            #equal_cfg = (tmp_cfg==simulation.initial_configuration)*1
+#            equal_cfg = (tmp_cfg==simulation.initial_configuration)*1
+#            tmp_cfg[simulation.system.activelist]*=5
+            #print tmp_cfg.reshape((12,12))[:5,:5]
+#            print equal_cfg.reshape((12,12))[:5,:5]
+#            print simulation.system.event_rates
            # print simulation.system.dual_configuration.reshape((12,12))[:4,:4]
       
             #print simulation.system.dual_configuration.reshape((12,12))

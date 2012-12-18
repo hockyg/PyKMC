@@ -48,6 +48,8 @@ def get_spintrj( spintrjfile, cfgname="configuration",maxframe=None ):
             count = count+1
     except EOFError:
         pass
+    except IOError:
+        raise
     trajectory_array = np.array(trajectory,dtype=int)
     times_array = np.array(times)
     stop_times_array = np.array(stop_times)
