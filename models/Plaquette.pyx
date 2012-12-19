@@ -21,6 +21,19 @@ cdef gen_pascal_parity( np.ndarray[np.int32_t,ndim=2] pascal_parity, int linear_
             pascal_parity[i,i+j] = (pascal_parity[i-1,i+j]+pascal_parity[i,i+j-1])%2
             pascal_parity[i+j,i] = (pascal_parity[i+j-1,i]+pascal_parity[i+j,i-1])%2
 
+def test_square_dual( configuration, dual_configuration, int linear_size ):
+    cdef int i,j
+#    cdef np.ndarray dual_configuration = np.zeros(configuration.shape,dtype=ct.c_int)
+    cdef int sumvar = 0
+    for i in range(linear_size):
+        for j in range(linear_size):
+            spinij = configuration[i,j]
+            spinijp1 = configuration[i,(j+1)%linear_size]
+            spinip1j = configuration[(i+1)%linear_size,j]
+            spinip1jp1 = configuration[(i+1)%linear_size,(j+1)%linear_size]
+            sumvar = sumvar + abs(dual_configuration[i,j] - ( 1-spinij*spinijp1*spinip1j*spinip1jp1 )/2)
+    return sumvar
+
 def test_triangle_dual( configuration, dual_configuration, int linear_size ):
     cdef int i,j
 #    cdef np.ndarray dual_configuration = np.zeros(configuration.shape,dtype=ct.c_int)
