@@ -24,8 +24,9 @@ struct SimData{
     double total_energy;
     double time;
     int *configuration;
-    int *prev_configuration;
+//    int *prev_configuration;
     int *dual_configuration;
+    int move_site;
     // rate stuff
     double total_rate;
     int n_event_types;

@@ -132,7 +132,7 @@ class Simulation(object):
             
 
         self.initial_configuration = self.configuration.copy()
-        self.prev_configuration = self.configuration.copy()
+#        self.prev_configuration = self.configuration.copy()
 
         # set up system object
         self.system = SpinSys()
@@ -151,9 +151,10 @@ class Simulation(object):
         self.system.betaexp = np.exp(-1./temperature)
         self.system.total_energy = 0.0
         self.system.time = 0.0
+        self.system.move_site = 0
 
         self.system.configuration = self.configuration
-        self.system.prev_configuration = self.prev_configuration
+#        self.system.prev_configuration = self.prev_configuration
         self.system.dual_configuration = self.dual_configuration
 
         sys_arrays = ModelRegistry[self.model_name].InitializeArrays( self.nsites, self.n_event_types, self.nactive )
@@ -185,7 +186,7 @@ class Simulation(object):
         #This is a good place to check that configuration, initial configuration, and dual_configuration all work as expected. for example, the next line works to make sure  the configuration and dual configuration match, but not the initial configuration and dual configuration (unless restarting from a state where that was true)
         #print "tpm test 1: (expect 0)",Plaquette.test_triangle_dual( self.configuration.reshape((self.linear_size,-1)), self.dual_configuration.reshape((self.linear_size,-1)), self.linear_size )
         #print "tpm test 2: (expect >0)",Plaquette.test_triangle_dual( self.initial_configuration.reshape((self.linear_size,-1)), self.dual_configuration.reshape((self.linear_size,-1)), self.linear_size )
-        self.prev_configuration = self.configuration.copy()
+#        self.prev_configuration = self.configuration.copy()
         self.initial_configuration = self.configuration.copy()
         self.set_initial_nonexcited()
 
@@ -346,8 +347,9 @@ class SimData(ct.Structure):
                 ("total_energy",c_double), 
                 ("time",c_double), 
                 ("configuration",c_void_p),
-                ("prev_configuration",c_void_p),
+#                ("prev_configuration",c_void_p),
                 ("dual_configuration",c_void_p),
+                ("move_site",c_int),
         # rate stuff
                 ("total_rate",c_double),
                 ("n_event_types",c_int),
