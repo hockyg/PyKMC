@@ -27,6 +27,23 @@ def logframes(total_steps,steps_per_decade=10):
 
     return logdist
 
+def get_last_cfg( spintrjfile ):
+    fh = gzip.GzipFile(spintrjfile,'r')
+
+    try:
+        count = 0
+        while True:
+            simdata = pickle.load(fh)
+            configuration = simdata["configuration"]
+            dual_configuration = simdata["dual_configuration"]
+
+            count = count+1
+    except EOFError:
+        pass
+    except IOError:
+        raise
+    return configuration, dual_configuration
+
 def get_spintrj( spintrjfile, cfgname="configuration",maxframe=None ):
     fh = gzip.GzipFile(spintrjfile,'r')
     times = []
