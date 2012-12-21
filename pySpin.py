@@ -3,6 +3,7 @@ import pyximport; pyximport.install()
 import os
 import sys
 from SpinObj import *
+from PyKMC.analyze.util import get_last_cfg
 import cPickle as pickle
 import numpy as np
 
@@ -115,8 +116,8 @@ def simulate(options):
         print "Doing full restart with:"
         np.random.seed(simulation.seed)
 
-    elif options.input is not None:
-        simulation = load_object(options.input)
+    elif options.continuefile is not None:
+        simulation = load_object(options.continuefile)
         simulation.reset_for_continue()
 
         simulation.command_line_options = copy.copy(options)
@@ -134,9 +135,12 @@ def simulate(options):
         
     else:
         simulation = Simulation()
+        input_cfgs = None
+        if options.input is not None:
+            input_cfgs = get_last_cfg(options.input)
         simulation.initialize_new( options.lattice, options.model, options.dynamics_type,
                                    options.linear_size, options.temperature, 
-                                   options.max_time, seed=seed )
+                                   options.max_time, seed=seed, input_cfgs=input_cfgs )
         simulation.command_line_options = options
         simulation.seed = seed
 
@@ -202,8 +206,9 @@ def simulate(options):
 #            print equal_cfg.reshape((12,12))[:5,:5]
 #            print simulation.system.event_rates
            # print simulation.system.dual_configuration.reshape((12,12))[:4,:4]
+
       
-            #print simulation.system.dual_configuration.reshape((12,12))
+            #print simulation.system.dual_configuration.reshape((4,4))
             simulation.system.stop_time = stop_time
             if simulation.system.time > stop_time:
                 pass
@@ -229,6 +234,11 @@ def simulate(options):
             total_steps = total_steps+simulation.system.SD.current_step
             efficiency = simulation.system.SD.current_step/stage_elapsed_time
 
+            #print "Rates: ",simulation.system.total_rate,
+            #print "Rates: ",simulation.system.total_rate,
+            #C.setup_spin_system(simulation.system.SD)
+            #print simulation.system.total_rate
+
             #this should be last major thing in loop, before printing logging info
             prev_time = sim_timer.gettime()
             prev_stop_time = stop_time
@@ -250,9 +260,11 @@ def main():
     from optparse import OptionParser, OptionGroup
     parser = OptionParser()
     parser.add_option('-i','--input',default=None,
-                      help="Read in stored configuration (default: use random)")
+                      help="Start from stored configuration in spintrj")
+    parser.add_option('-c','--continuefile',default=None,
+                      help="Continue from stored state")
     parser.add_option('-r','--restart',default=None,
-                      help="Read in stored configuration and do full restart (default: use random)")
+                      help="Read in stored configuration and do full restart")
     parser.add_option('-m', '--model', default="FA", 
                       help="Model to simulate (default: %default)" )
     parser.add_option('--dynamics_type', default="Metropolis",
