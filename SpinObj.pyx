@@ -211,6 +211,13 @@ class Simulation(object):
 
     def setup_steps_to_take(self):
         pass
+    
+    def __getstate__(self):
+        state_dict = {}
+        for key in self.__dict__:
+             if key not in ("trj_file"):
+                 state_dict[key] = self.__dict__[key]
+        return state_dict
 
     def save_state(self,filename,compresslevel=3):
         if not os.path.splitext(filename)[-1]==".gz":
