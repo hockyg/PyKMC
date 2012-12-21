@@ -16,6 +16,10 @@ Quick Instructions
 To build:
     python setup.py build_ext -i
 
+To run:
+ * numpy should be in PYTHONPATH
+ * add this directory to PYTHONPATH
+
 Contents
 -----------
 * README.md
@@ -25,11 +29,6 @@ Contents
 
     This should contain utilities for writing and reading configurations and
         trajectories
-* lattice/
-
-    This contained lattice definitions and tools for determining neighbor
-        sites on that lattice. Will be removed as functionality has migrated
-        to models/
 * models/
 
     This should contain rules for the dynamics, and code that builds the list
