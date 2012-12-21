@@ -1,10 +1,10 @@
 #!/usr/bin/python
-import pyximport; pyximport.install()
 import os
 import sys
+import numpy as np
+import pyximport;pyximport.install(setup_args={'include_dirs': np.get_include()})
 from SpinObj import *
 import cPickle as pickle
-import numpy as np
 
 libname = "pySpin.so"
 verbose_out = None
@@ -104,7 +104,6 @@ def simulate(options):
 
     if options.restart is not None:
         simulation = load_object(options.restart)
-        simulation.print_state()
         command_line_options = copy.copy(options)
         options = simulation.final_options
         if simulation.system.time == 0:
@@ -273,6 +272,8 @@ def main():
 
     write_group=OptionGroup(parser,"Options for writing out","Options for writing out information to the screen and files")
     write_group.add_option("-o","--output_prefix",default=None,help="Set prefix for output files (default:none)")
+    write_group.add_option("-a","--trjfile",default=None,
+                           help="Set prefix for output files by specifying a trajectory name (default:none)")
     write_group.add_option("-v","--verbose",help="Print useful execution information",dest="verbose",default=True,action="store_true")
     write_group.add_option("--linear_time",help="Save information on a linear time scale (default: logarithmic)",default=False,action="store_true")
     write_group.add_option("--info_time",default=-1,type=float,help="Set how often simulation info and configurations are written for linear time (default:none)")
@@ -296,6 +297,12 @@ def main():
     parser.add_option_group(freezing_group)
 
     options, args = parser.parse_args()
+
+    if options.trjfile and not options.output_prefix:
+        parts=os.path.splitext(options.trjfile)
+        options.output_prefix=os.path.splitext(options.trjfile)[0]
+        if parts[1] in (".gz",".bz2",".tar"):
+            options.output_prefix=os.path.splitext(options.output_prefix)[0]
  
     if options.seed is not None and options.seed < 1:
         parser.error("Seed must be assigned a positive value")
