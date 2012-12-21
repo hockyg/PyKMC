@@ -90,7 +90,7 @@ class Simulation(object):
             print "In SpinObj.pyx, have not defined which spin values are non-excited"
             sys.exit(2)
 
-    def initialize_new(self,lattice_name,model_name,dynamics_type,linear_size,temperature,max_time,seed=0,activelist=None):
+    def initialize_new(self,lattice_name,model_name,dynamics_type,linear_size,temperature,max_time,seed=0,activelist=None,input_cfgs=None):
         self.initial_configuration = None
         self.dual_configuration = None
         self.command_line_options = None
@@ -117,11 +117,19 @@ class Simulation(object):
         self.n_event_types = n_event_types = lattice.n_event_types
         event_rates = lattice.EventRates(temperature,dynamics_dict[dynamics_type])
 
-        if self.model_name in has_dual:
-            self.configuration, self.dual_configuration = lattice.RandomConfiguration( temperature )
+        if input_cfgs is None:
+            if self.model_name in has_dual:
+                self.configuration, self.dual_configuration = lattice.RandomConfiguration( temperature )
+            else:
+                self.configuration = lattice.RandomConfiguration( temperature )
+                self.dual_configuration = self.configuration # shouldn't take up any space, just pointer to same array
         else:
-            self.configuration = lattice.RandomConfiguration( temperature )
-            self.dual_configuration = self.configuration # shouldn't take up any space, just pointer to same array
+            if self.model_name in has_dual:
+                self.configuration, self.dual_configuration = input_cfgs
+            else:
+                self.configuration = input_cfgs[0]
+                self.dual_configuration = self.configuration # shouldn't take up any space, just pointer to same array
+            
 
         self.initial_configuration = self.configuration.copy()
         self.prev_configuration = self.configuration.copy()
