@@ -6,16 +6,28 @@ import cPickle as pickle
 import gzip
 from SpinObj import *
 from PyKMC.analyze import util
+from optparse import OptionParser,OptionGroup
 
-maxtouse = 200
-maxframe=None
-#maxframe=100
-nsamples = len(sys.argv[1:])
+usage="%prog [options] spintrj "
+parser=OptionParser(usage=usage)
+parser.add_option('-o',dest="output_prefix",default=None,help="Prefix for plots and pickle of results")
+parser.add_option('-m','--maxtouse',default=200,type=int,help="Max frame intervals to use (default %default)")
+#parser.add_option('--first_frame',default=None,type=int,help="First frame in trajectory to use (default: 0)")
+parser.add_option('--last_frame',default=None,type=int,help="Last frame in trajectory to use (default: all)")
+
+(options, args) = parser.parse_args()
+
+if options.output_prefix is not None:
+    sys.stdout=open(options.output_prefix+'_coft.txt', 'w')
+
+maxtouse = options.maxtouse
+maxframe=options.last_frame
+nsamples = len(args)
 coft_list = []
 times = []
 time_array = None
 c0_list = []
-for fileidx, filename in enumerate(sys.argv[1:]):
+for fileidx, filename in enumerate(args):
     try:
         times, stop_times, trajectory = util.get_spintrj(filename,maxframe=maxframe)
     except IOError:
@@ -57,6 +69,11 @@ print "#Avg: %f"%(c0_array.mean())
 final_avg = coft_all.mean(axis=0)
 output = np.append(time_array.reshape(-1,1),final_avg.reshape(-1,1),axis=1)
 np.savetxt(sys.stdout,output,fmt="%f")
+
+# now save important information as dict
+if options.output_prefix:
+    results_dict = { 'time_array': time_array, 'coft': final_avg, 'c0': c0_array.mean()}
+    pickle.dump(results_dict, gzip.GzipFile( options.output_prefix+'_coft.pickle.gz', 'wb'),protocol=-1)
 
 
 #    if fileidx == 0:
