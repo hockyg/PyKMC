@@ -7,6 +7,7 @@ import gzip
 from SpinObj import *
 from PyKMC.analyze import util
 from optparse import OptionParser,OptionGroup
+import time
 
 usage="%prog [options] spintrj "
 parser=OptionParser(usage=usage)
@@ -27,11 +28,22 @@ coft_list = []
 times = []
 time_array = None
 c0_list = []
+defect_list = []
 for fileidx, filename in enumerate(args):
     try:
+        starttime = time.time()
         times, stop_times, trajectory = util.get_spintrj(filename,maxframe=maxframe)
+        print "# Read time:",time.time()-starttime
+        tmp_times, tmp_stop_times, dual_trajectory = util.get_spintrj(filename,maxframe=maxframe,cfgname="dual_configuration")
     except IOError:
         continue
+   
+    # get number of defects in each frame and put in defect list 
+    defect_array = np.zeros(len(dual_trajectory))
+    for i in range(len(dual_trajectory)):
+        defect_array[i] = dual_trajectory[i].sum()
+    defect_list.append(defect_array)
+
     frame_intervals = util.logframes(len(times))
     nframes = trajectory.shape[0]
     dt = stop_times[1]-stop_times[0]
@@ -59,6 +71,7 @@ for fileidx, filename in enumerate(args):
 
     coft_list.append(means)
 
+defect_array = np.array(defect_list)
 c0_array = np.array(c0_list)
 coft_all = np.array(coft_list)
 print "#Avg: %f"%(c0_array.mean())
@@ -72,9 +85,10 @@ np.savetxt(sys.stdout,output,fmt="%f")
 
 # now save important information as dict
 if options.output_prefix:
-    results_dict = { 'time_array': time_array, 'coft': final_avg, 'c0': c0_array.mean()}
+    results_dict = { 'time_array': time_array, 'coft': final_avg, 'c0': c0_array.mean(),'defect_array':defect_array,'nsites':len(dual_trajectory[0]) }
     pickle.dump(results_dict, gzip.GzipFile( options.output_prefix+'_coft.pickle.gz', 'wb'),protocol=-1)
 
+print "# Total time:",time.time()-starttime
 
 #    if fileidx == 0:
 #        coft_array = np.zeros((len(times),nsamples))
