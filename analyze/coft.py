@@ -4,7 +4,7 @@ import os
 import sys
 import cPickle as pickle
 import gzip
-from SpinObj import *
+from PyKMC.SpinObj import *
 from PyKMC.analyze import util
 from optparse import OptionParser,OptionGroup
 import time
@@ -32,27 +32,33 @@ defect_list = []
 for fileidx, filename in enumerate(args):
     try:
         starttime = time.time()
-        times, stop_times, trajectory = util.get_spintrj(filename,maxframe=maxframe)
+        times, stop_times, trajectory, dual_trajectory = util.get_spintrj(filename,maxframe=maxframe,plus_dual=True)
+#        tmp_times, tmp_stop_times, dual_trajectory = util.get_spintrj(filename,maxframe=maxframe,cfgname="dual_configuration")
         print "# Read time:",time.time()-starttime
-        tmp_times, tmp_stop_times, dual_trajectory = util.get_spintrj(filename,maxframe=maxframe,cfgname="dual_configuration")
     except IOError:
         continue
    
     # get number of defects in each frame and put in defect list 
-    defect_array = np.zeros(len(dual_trajectory))
-    for i in range(len(dual_trajectory)):
+    # also time average site values
+    nsites=len(dual_trajectory[0])
+    nframes = len(dual_trajectory)
+    defect_array = np.zeros(nframes)
+    site_values = np.zeros(nsites)
+    for i in range(nframes):
         defect_array[i] = dual_trajectory[i].sum()
+        site_values = site_values + trajectory[i]
     defect_list.append(defect_array)
+    site_values = site_values/float(nframes)
 
     frame_intervals = util.logframes(len(times))
-    nframes = trajectory.shape[0]
+    nframes = len(trajectory)
     dt = stop_times[1]-stop_times[0]
     counts = np.zeros(len(frame_intervals))
     coft_array = np.zeros((len(frame_intervals),maxtouse))
     time_array = frame_intervals*dt
 
     # time average spin values
-    site_values = trajectory.mean(axis=0)
+#    site_values = trajectory.mean(axis=0)
     c0 = (site_values*site_values).mean()
     c0_list.append(c0)
     print "# %s: c0 = %f"%(filename,c0)
@@ -62,8 +68,8 @@ for fileidx, filename in enumerate(args):
         starting_frames = util.get_starting_frames( nframes, frame_interval, maxtouse=maxtouse )
         for starting_frame in starting_frames:
             if counts[idx0] >= maxtouse: continue
-            cfg0 = trajectory[starting_frame,:] 
-            cfg1 = trajectory[starting_frame+frame_interval,:] 
+            cfg0 = trajectory[starting_frame] 
+            cfg1 = trajectory[starting_frame+frame_interval] 
             coft = (cfg0*cfg1).mean()
             coft_array[idx0,counts[idx0]] = coft
             counts[idx0]+=1
@@ -85,7 +91,7 @@ np.savetxt(sys.stdout,output,fmt="%f")
 
 # now save important information as dict
 if options.output_prefix:
-    results_dict = { 'time_array': time_array, 'coft': final_avg, 'c0': c0_array.mean(),'defect_array':defect_array,'nsites':len(dual_trajectory[0]) }
+    results_dict = { 'time_array': time_array, 'coft': final_avg, 'c0': c0_array.mean(),'defect_array':defect_array,'nsites':nsites }
     pickle.dump(results_dict, gzip.GzipFile( options.output_prefix+'_coft.pickle.gz', 'wb'),protocol=-1)
 
 print "# Total time:",time.time()-starttime
