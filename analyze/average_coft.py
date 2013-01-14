@@ -52,8 +52,9 @@ print "# c0 mean",c0_array.mean()
 
 if options.output_prefix is not None:
     #histogram c0 values
-    binstep=0.0666
-    bins = np.arange(0,1,binstep)
+    #binstep=0.0666
+    binstep=0.05
+    bins = np.arange(0,1+binstep,binstep)
     hist,edges = np.histogram(c0_array,bins=bins)
     #hist,edges = np.histogram(c0_array,bins=20)
     #bin_centers = edges[:-1]+binstep/2
@@ -83,8 +84,8 @@ if options.output_prefix is not None:
                ndefect_v_c0_avg[i] = tmp_array.mean()
                ndefect_v_c0_std[i] = tmp_array.std()
                ndefect_v_c0_error[i] = ndefect_v_c0_std[i]/np.sqrt(nitems)
-               ndefect_v_c0_nentries[i] = nitems
-       defect_bin_result = np.concatenate(( bins, ndefect_v_c0_avg, ndefect_v_c0_std, ndefect_v_c0_error ),axis=1)
+               ndefect_v_c0_nentries[i] = nitems/float(len(ndefect_avg_bins))
+       defect_bin_result = np.concatenate(( bins, ndefect_v_c0_avg, ndefect_v_c0_std, ndefect_v_c0_error, ndefect_v_c0_nentries ),axis=1)
        np.savetxt(open(options.output_prefix+'_ndefect_bin_v_c0.txt','w'), defect_bin_result, fmt="%f")
        
 
