@@ -25,7 +25,7 @@ ModelRegistry[Plaquette.model_name] = Plaquette
 model_dict = {"FA":0, "East":1, "Plaquette":10}
 dynamics_dict = {"Metropolis":0, "Glauber":1}
 has_dual = ["Plaquette"]
-frozen_geometries = {None:0,"CAVITY":1,"WALL":2,"SANDWICH":3,"RANDOM":4}
+frozen_geometries = {None:0,"CAVITY":1,"HEXAGON":1,"WALL":2,"SANDWICH":3,"RANDOM":4}
 
 #definitions
 c_int = ct.c_int
@@ -90,6 +90,14 @@ class Simulation(object):
             print "In SpinObj.pyx, have not defined which spin values are non-excited"
             sys.exit(2)
 
+    def change_temperature(self,temperature):
+        model = ModelRegistry[self.model_name]
+        lattice = model.LatticeRegistry[self.lattice_name](self.linear_size)
+        event_rates = lattice.EventRates(temperature,dynamics_dict[self.final_options.dynamics_type])
+        self.system.event_rates = event_rates
+        self.system.temp = temperature
+        self.system.betaexp = 1/temperature
+
     def initialize_new(self,lattice_name,model_name,dynamics_type,linear_size,temperature,max_time,seed=0,activelist=None,input_cfgs=None):
         self.initial_configuration = None
         self.dual_configuration = None
@@ -115,7 +123,7 @@ class Simulation(object):
             self.nactive = self.nsites
 
         self.n_event_types = n_event_types = lattice.n_event_types
-        event_rates = lattice.EventRates(temperature,dynamics_dict[dynamics_type])
+        event_rates = np.array( lattice.EventRates(temperature,dynamics_dict[dynamics_type]),dtype=c_double )
 
         if input_cfgs is None:
             if self.model_name in has_dual:
@@ -263,14 +271,16 @@ class SpinSys(object):
         self.frame_exception_list = ["neighbors", "neighbors_update",                                                    "events", "event_types", "events_by_type",
                                      "events_per_type", "event_refs",
                                      "event_rates", "cumulative_rates",
+                                     "activelist","isactivelist",
                                      ]
+        self.only_active_sites_list = ["configuration","dual_configuration","persistence_array"]
         self.save_fields = ["creation_date","creation_host_system_info","created_on", "stop_time"]
 
     def get_frame_state(self,only_active=False):
         state = { }
         for key in SimDataFields.keys()+self.save_fields:
             if hasattr(self, key) and key not in self.frame_exception_list:
-                if only_active and getattr(self,"nactive")<getattr(self,"nsites") and key.find("configuration")>-1:
+                if only_active and getattr(self,"nactive")<getattr(self,"nsites") and key in self.only_active_sites_list:
                     tmp_cfg = getattr(self,key)[getattr(self,"activelist")]
                     state[key] = tmp_cfg
                 else:
