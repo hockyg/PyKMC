@@ -144,6 +144,40 @@ class TriangleClass(object):
     def row_col_to_idx(self, int row, int col):
         return row*self.side_length+col
 
+    def HexagonActivelist( self, cavity_center, int frozen_radius ):
+        if (not len(cavity_center)==2): raise AssertionError("Must specify a cavity center of dimension 2 for this model")
+        cdef int i,j,minx,maxx,row,col,spinidx,count,miny,mayxy
+        cdef int corner_area = 2*frozen_radius*(frozen_radius+1)/2
+        cdef int area = (2*int(frozen_radius)+1)**2 - corner_area
+        cdef np.ndarray[np.int32_t,ndim=1] activelist = np.zeros(area,dtype=ct.c_int)
+        minx = -int(frozen_radius)
+        maxx = -minx+1
+        count = 0
+        for i in range(minx,maxx):
+        #    print "Row",i,":",
+            row = (cavity_center[0]+i)%self.side_length
+            miny=miny
+            maxy=maxy
+            if(i>0):
+                miny = -frozen_radius+i
+                maxx = frozen_radius+1
+            else: #up and same row
+                miny = -frozen_radius
+                maxy = frozen_radius+i+1
+                
+            for j in range(miny,maxy):
+                col = (cavity_center[1]+j)%self.side_length
+                spinidx = row*self.side_length+col
+                # now cut off the corners of the rhombus to make a hexagon
+                activelist[count]=spinidx
+                count=count+1
+        #        print j,
+        #    print ""
+        #print "CORNER AREA",corner_area
+        #print "NUMBER ACTIVE SPINS:",count
+
+        np.sort(activelist)
+        return activelist
     def SandwichActivelist( self, int sandwich_center, int sandwich_dimension, int frozen_radius ):
         cdef int sandwich_area = (2*frozen_radius+1)*self.side_length
         cdef int nactive = sandwich_area
@@ -336,8 +370,8 @@ class SquareClass(object):
                     count = count + 1
         print activelist
         return activelist
-        
 
+        
     def CavityActivelist( self, cavity_center, int frozen_radius ):
         if (not len(cavity_center)==2): raise AssertionError("Must specify a cavity center of dimension 2 for this model")
         cdef int i,j,minx,maxx,row,col,spinidx,count
