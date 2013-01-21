@@ -3,6 +3,7 @@ import os
 import sys
 import numpy as np
 import pyximport;pyximport.install(setup_args={'include_dirs': np.get_include()})
+#import PyKMC.analyze.util as PyKMC_analyze_util
 from SpinObj import *
 from PyKMC.analyze.util import get_last_cfg
 import cPickle as pickle
@@ -13,7 +14,7 @@ verbose_out = None
 reset_arguments = ("max_time","seed","linear_time","info_time",
                    "stops_per_decade", "write_trj", "output_prefix",
                    "discard_frozen", "ccoord", "frozen_radius", "frozen_fraction",
-                   "frozen_geometry","frozen_dimension",
+                   "frozen_geometry","frozen_dimension","temperature",
                   )
 #other possible reset arguments:
 #    temperature -- this will put the system out of equilibrium and will require resetting a great deal of things like rates 
@@ -32,6 +33,12 @@ def set_up_frozen( simulation, options ):
             simulation.cavity_center = cavity_center
             simulation.cavity_radius = cavity_radius
             activelist = lattice.CavityActivelist( cavity_center, cavity_radius )
+        elif options.frozen_geometry.upper() == "HEXAGON":
+            cavity_center = np.array( options.ccoord.split(','),dtype=int)
+            cavity_radius = int(options.frozen_radius)
+            simulation.cavity_center = cavity_center
+            simulation.cavity_radius = cavity_radius
+            activelist = lattice.HexagonActivelist( cavity_center, cavity_radius )
         elif options.frozen_geometry.upper() == "WALL":
             wall_center = np.array( options.ccoord.split(','),dtype=int)[options.frozen_dimension]
             wall_radius = int(options.frozen_radius)
@@ -126,6 +133,10 @@ def simulate(options):
             print "Warning: resetting value of",key,"to command line value",getattr(options,key)
             setattr(simulation.final_options,key,getattr(options,key))
         options = simulation.final_options
+
+        if options.temperature is not None:
+            simulation.change_temperature(options.temperature)
+
         if options.seed is not None: simulation.seed = simulation.system.seed = options.seed
         simulation.setup_output_files()
         np.random.seed(simulation.seed)
@@ -136,6 +147,7 @@ def simulate(options):
         simulation = Simulation()
         input_cfgs = None
         if options.input is not None:
+            #input_cfgs = analyze_util.get_last_cfg(options.input)
             input_cfgs = get_last_cfg(options.input)
         simulation.initialize_new( options.lattice, options.model, options.dynamics_type,
                                    options.linear_size, options.temperature, 
